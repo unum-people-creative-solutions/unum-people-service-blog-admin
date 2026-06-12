@@ -5,6 +5,7 @@ export interface Tenant {
   id: string;
   name: string;
   slug?: string;
+  nome_negocio?: string;
 }
 
 interface User {
@@ -49,10 +50,16 @@ export const useAuthStore = create<AuthState>()(
       tenantsLoaded: false,
       setAvailableTenants: (tenants) => {
         const state = get();
-        set({ availableTenants: tenants, tenantsLoaded: true });
+        // Mapeia `nome_negocio` para `name` se `name` não estiver presente (vem da API Go)
+        const mappedTenants = tenants.map((t) => ({
+          ...t,
+          name: t.name || t.nome_negocio || 'Tenant Sem Nome',
+        }));
+
+        set({ availableTenants: mappedTenants, tenantsLoaded: true });
         // Auto-seleciona se houver exatamente 1 tenant e nenhum ativo
-        if (tenants.length === 1 && !state.activeTenantId) {
-          set({ activeTenantId: tenants[0].id, activeTenantName: tenants[0].name });
+        if (mappedTenants.length === 1 && !state.activeTenantId) {
+          set({ activeTenantId: mappedTenants[0].id, activeTenantName: mappedTenants[0].name });
         }
       },
       setActiveTenant: (id, name) => set({ activeTenantId: id, activeTenantName: name }),
