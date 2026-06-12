@@ -133,7 +133,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
 
     try {
       // 1. Obter URL assinada
-      const { url } = await blogApi.getUploadURL(file.name, file.type);
+      const { url, public_url } = await blogApi.getUploadURL(file.name, file.type);
       setUploadProgress(30);
 
       // 2. Fazer PUT direto no S3 com XMLHttp para acompanhar progresso
@@ -151,8 +151,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
       xhr.onload = () => {
         if (xhr.status === 200) {
           // Extrair a URL limpa do bucket S3 removendo query params da URL assinada
-          const cleanUrl = url.split('?')[0];
-          setValue('cover_image_url', cleanUrl, { shouldValidate: true });
+          setValue('cover_image_url', public_url, { shouldValidate: true });
           setUploading(false);
         } else {
           setUploadError('Erro ao enviar imagem ao S3');
