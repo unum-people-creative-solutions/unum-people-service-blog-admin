@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export interface Tenant {
+  id: string;
+  name: string;
+  slug?: string;
+}
+
 interface User {
   email: string;
   groups: string[];
@@ -14,6 +20,12 @@ interface AuthState {
   isAuthenticated: boolean;
   isAdmin: boolean;
   hasHydrated: boolean;
+  availableTenants: Tenant[];
+  activeTenantId: string | null;
+  activeTenantName: string | null;
+  tenantsLoaded: boolean;
+  setAvailableTenants: (tenants: Tenant[]) => void;
+  setActiveTenant: (id: string, name: string) => void;
   setAuth: (user: User, token: string, enabledServices: string[], refreshToken?: string) => void;
   setToken: (token: string) => void;
   logout: () => void;
@@ -31,6 +43,19 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isAdmin: false,
       hasHydrated: false,
+      availableTenants: [],
+      activeTenantId: null,
+      activeTenantName: null,
+      tenantsLoaded: false,
+      setAvailableTenants: (tenants) => {
+        const state = get();
+        set({ availableTenants: tenants, tenantsLoaded: true });
+        // Auto-seleciona se houver exatamente 1 tenant e nenhum ativo
+        if (tenants.length === 1 && !state.activeTenantId) {
+          set({ activeTenantId: tenants[0].id, activeTenantName: tenants[0].name });
+        }
+      },
+      setActiveTenant: (id, name) => set({ activeTenantId: id, activeTenantName: name }),
       setAuth: (user, token, enabledServices, refreshToken) => set({
         user,
         token,
@@ -46,7 +71,11 @@ export const useAuthStore = create<AuthState>()(
         refreshToken: null,
         enabledServices: [],
         isAuthenticated: false,
-        isAdmin: false
+        isAdmin: false,
+        availableTenants: [],
+        activeTenantId: null,
+        activeTenantName: null,
+        tenantsLoaded: false
       }),
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
       hasBlogService: () => {
@@ -65,6 +94,9 @@ export const useAuthStore = create<AuthState>()(
         enabledServices: state.enabledServices,
         isAuthenticated: state.isAuthenticated,
         isAdmin: state.isAdmin,
+        activeTenantId: state.activeTenantId,
+        activeTenantName: state.activeTenantName,
+        availableTenants: state.availableTenants,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
@@ -72,3 +104,4 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 );
+

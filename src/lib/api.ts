@@ -1,4 +1,4 @@
-import { useAuthStore } from '@/store/useAuthStore';
+import { useAuthStore, Tenant } from '@/store/useAuthStore';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -9,6 +9,12 @@ async function fetchWithAuth(path: string, options: RequestInit = {}) {
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
+  
+  const activeTenantId = useAuthStore.getState().activeTenantId;
+  if (activeTenantId) {
+    headers.set('X-Tenant-ID', activeTenantId);
+  }
+
   headers.set('Content-Type', 'application/json');
 
   const response = await fetch(`${API_URL}${path}`, {
@@ -45,6 +51,11 @@ export interface Post {
 }
 
 export const blogApi = {
+  listTenants: async (service?: string): Promise<Tenant[]> => {
+    const query = service ? `?service=${service}` : '';
+    return fetchWithAuth(`/me/tenants${query}`);
+  },
+
   listPosts: async (status?: string, limit = 10, lastKey?: string): Promise<{ posts: Post[]; last_key: string }> => {
     let query = `?limit=${limit}`;
     if (status) query += `&status=${status}`;
@@ -96,3 +107,4 @@ export const blogApi = {
     return { url: data.upload_url, public_url: data.public_url };
   },
 };
+

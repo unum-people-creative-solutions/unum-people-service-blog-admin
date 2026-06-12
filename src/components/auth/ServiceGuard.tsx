@@ -3,22 +3,33 @@
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useTenants } from '@/hooks/useTenants';
 
 export default function ServiceGuard({ children }: { children: React.ReactNode }) {
   const { hasBlogService, hasHydrated, isAuthenticated } = useAuthStore();
+  const { tenants, tenantsLoaded } = useTenants();
   const router = useRouter();
   const pathname = usePathname();
   const isProtectedRoute = pathname !== '/login' && pathname !== '/403';
 
   useEffect(() => {
     if (isProtectedRoute && hasHydrated && isAuthenticated) {
-      if (!hasBlogService()) {
+      if (tenantsLoaded && tenants.length === 0) {
+        router.push('/403');
+      } else if (!hasBlogService()) {
         router.push('/403');
       }
     }
-  }, [hasBlogService, isAuthenticated, router, isProtectedRoute, hasHydrated]);
+  }, [hasBlogService, isAuthenticated, router, isProtectedRoute, hasHydrated, tenantsLoaded, tenants]);
 
-  if (isProtectedRoute && isAuthenticated && (!hasHydrated || !hasBlogService())) {
+  const showLoading = isProtectedRoute && isAuthenticated && (
+    !hasHydrated ||
+    !tenantsLoaded ||
+    !hasBlogService() ||
+    tenants.length === 0
+  );
+
+  if (showLoading) {
     return (
       <div
         role="status"
@@ -32,3 +43,4 @@ export default function ServiceGuard({ children }: { children: React.ReactNode }
 
   return <>{children}</>;
 }
+

@@ -19,9 +19,12 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { blogApi, Post } from '@/lib/api';
+import TenantSwitcher from '@/components/TenantSwitcher';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export default function PostsPage() {
   const queryClient = useQueryClient();
+  const { isAdmin } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'DRAFT' | 'PUBLISHED'>('ALL');
@@ -99,7 +102,7 @@ export default function PostsPage() {
           <div className="mb-8">
             <Image src="/logo.png" alt="Unum People" width={180} height={48} className="object-contain w-auto h-auto" />
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 flex-1">
             <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
               <FileText className="w-8 h-8 text-accent-400" />
               Gestão de Blog
@@ -109,13 +112,16 @@ export default function PostsPage() {
             </p>
           </div>
 
-          <Link
-            href="/posts/new"
-            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-accent-600 hover:bg-accent-500 active:bg-accent-600 rounded-xl transition text-sm font-semibold text-white shadow-lg shadow-accent-950/20"
-          >
-            <Plus className="w-5 h-5" />
-            Novo Post
-          </Link>
+          <div className="flex items-center gap-3">
+            <TenantSwitcher onTenantChange={() => queryClient.invalidateQueries({ queryKey: ['posts'] })} />
+            <Link
+              href="/posts/new"
+              className="flex items-center justify-center gap-2 px-5 py-2.5 bg-accent-600 hover:bg-accent-500 active:bg-accent-600 rounded-xl transition text-sm font-semibold text-white shadow-lg shadow-accent-950/20"
+            >
+              <Plus className="w-5 h-5" />
+              Novo Post
+            </Link>
+          </div>
         </div>
 
         {/* Filtros e Busca */}
@@ -201,7 +207,7 @@ export default function PostsPage() {
                 <tbody className="divide-y divide-slate-800/60 text-slate-300">
                   {filteredPosts.map((post) => (
                     <tr key={post.id} className="hover:bg-slate-900/10 transition">
-                      <td className="py-4 px-6 max-w-md">
+                       <td className="py-4 px-6 max-w-md">
                         <div className="space-y-1">
                           <p className="font-bold text-white text-base hover:text-accent-400 transition">
                             <Link href={`/posts/${post.id}/edit`}>{post.title}</Link>
@@ -243,17 +249,19 @@ export default function PostsPage() {
                         </div>
                       </td>
                       <td className="py-4 px-6 text-right space-x-2">
-                        <button
-                          onClick={() => togglePublish(post)}
-                          title={post.status === 'PUBLISHED' ? 'Mudar para Rascunho' : 'Publicar Post'}
-                          className={`p-2 rounded-lg border transition ${
-                            post.status === 'PUBLISHED'
-                              ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
-                              : 'bg-accent-950/20 border-accent-800/30 text-accent-400 hover:bg-accent-950/40'
-                          }`}
-                        >
-                          {post.status === 'PUBLISHED' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => togglePublish(post)}
+                            title={post.status === 'PUBLISHED' ? 'Mudar para Rascunho' : 'Publicar Post'}
+                            className={`p-2 rounded-lg border transition ${
+                              post.status === 'PUBLISHED'
+                                ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+                                : 'bg-accent-950/20 border-accent-800/30 text-accent-400 hover:bg-accent-950/40'
+                            }`}
+                          >
+                            {post.status === 'PUBLISHED' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        )}
                         <Link
                           href={`/posts/${post.id}/edit`}
                           title="Editar Post"
@@ -261,13 +269,15 @@ export default function PostsPage() {
                         >
                           <Edit3 className="w-4 h-4" />
                         </Link>
-                        <button
-                          onClick={() => setDeleteConfirmId(post.id)}
-                          title="Excluir Post"
-                          className="p-2 rounded-lg border border-slate-850 bg-red-950/10 hover:bg-red-950/40 text-red-500/80 hover:text-red-400 border-red-950/30 hover:border-red-900/60 transition"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => setDeleteConfirmId(post.id)}
+                            title="Excluir Post"
+                            className="p-2 rounded-lg border border-slate-850 bg-red-950/10 hover:bg-red-950/40 text-red-500/80 hover:text-red-400 border-red-950/30 hover:border-red-900/60 transition"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -311,3 +321,4 @@ export default function PostsPage() {
     </main>
   );
 }
+

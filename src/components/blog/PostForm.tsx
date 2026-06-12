@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
+import { useAuthStore } from '@/store/useAuthStore';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as zod from 'zod';
 import { 
@@ -75,7 +76,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm<PostFormData>({
+  const { register, handleSubmit, control, setValue, watch, getValues, formState: { errors } } = useForm<PostFormData>({
     resolver: zodResolver(postSchema),
     defaultValues: {
       title: initialData?.title || '',
@@ -93,6 +94,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
     }
   });
 
+  const { isAdmin } = useAuthStore();
   const watchTitle = watch('title');
   const watchContent = watch('content_md');
   const watchCoverImage = watch('cover_image_url');
@@ -521,6 +523,17 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
               <Save className="w-4 h-4" />
               Salvar Post
             </button>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={handleSubmit((data) => onSubmit({ ...data, tags, status: 'PUBLISHED' }))}
+                disabled={isLoading}
+                className="flex items-center justify-center gap-2 px-5 py-3 bg-slate-800 hover:bg-slate-700 active:opacity-90 disabled:opacity-50 text-white rounded-xl transition text-sm font-bold border border-slate-700/50"
+              >
+                <Eye className="w-4 h-4" />
+                Salvar e Publicar
+              </button>
+            )}
           </div>
 
         </div>
