@@ -202,11 +202,7 @@ export default function PostsPage() {
                   {filteredPosts.map((post) => (
                     <tr key={post.id} className="hover:bg-slate-900/10 transition">
                       <td className="py-4 px-6 max-w-md">
-                        
-          <div className="mb-8">
-            <Image src="/logo.png" alt="Unum People" width={180} height={48} className="object-contain w-auto h-auto" />
-          </div>
-          <div className="space-y-1">
+                        <div className="space-y-1">
                           <p className="font-bold text-white text-base hover:text-accent-400 transition">
                             <Link href={`/posts/${post.id}/edit`}>{post.title}</Link>
                           </p>
