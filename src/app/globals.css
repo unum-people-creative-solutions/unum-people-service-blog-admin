@@ -10,16 +10,34 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-poppins);
   
-  --color-primary-50: #ecfdf5;
-  --color-primary-100: #d1fae5;
-  --color-primary-500: #10b981;
-  --color-primary-600: #059669;
-  --color-primary-700: #047857;
-  --color-primary-800: #065f46;
-  --color-primary-900: #064e3b;
+  /* Primary: Unum Dark Blue */
+  --color-primary-50: #e7e9f3;
+  --color-primary-100: #d0d4e7;
+  --color-primary-400: #4f67d8;
+  --color-primary-500: #3b50c0;
+  --color-primary-600: #2337a6;
+  --color-primary-700: #0A1C82;
+  --color-primary-800: #071360;
+  --color-primary-900: #050b40;
+  --color-primary-950: #030620;
 
-  --color-neutral-900: #0f172a;
-  --color-neutral-950: #020617;
+  /* Secondary: Unum Purple */
+  --color-secondary-400: #a855f7;
+  --color-secondary-500: #9333ea;
+  --color-secondary-600: #7e22ce;
+  --color-secondary-700: #6B00D7;
+
+  /* Accent: Vibrant Orange */
+  --color-accent-400: #ff7043;
+  --color-accent-500: #ff5722;
+  --color-accent-600: #FF3D00;
+  --color-accent-700: #e03600;
+
+  /* Neutral Dark (Base for dark mode) */
+  --color-slate-800: #1a224a;
+  --color-slate-850: #12193b;
+  --color-slate-900: #0A1C82; /* Using the deep blue as deep background */
+  --color-slate-950: #050b40;
 }
 
 body {

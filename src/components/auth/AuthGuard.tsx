@@ -25,7 +25,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         aria-label="Validando sessao"
         className="flex items-center justify-center min-h-screen bg-slate-900"
       >
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" aria-hidden="true"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-500" aria-hidden="true"></div>
       </div>
     );
   }

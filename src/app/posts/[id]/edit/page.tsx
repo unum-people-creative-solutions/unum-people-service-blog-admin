@@ -31,7 +31,7 @@ export default function EditPostPage() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-slate-950 text-slate-400 space-y-3">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-accent-500" />
         <p className="text-sm">Carregando dados do post...</p>
       </div>
     );

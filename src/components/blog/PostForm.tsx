@@ -218,7 +218,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                 type="text"
                 placeholder="Ex: Como configurar integrações AWS"
                 {...register('title')}
-                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-lg text-sm text-slate-100 placeholder-slate-600 outline-none transition"
+                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 rounded-lg text-sm text-slate-100 placeholder-slate-600 outline-none transition"
               />
               {errors.title && <p className="text-xs text-red-400 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> {errors.title.message}</p>}
             </div>
@@ -231,7 +231,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                 type="text"
                 placeholder="como-configurar-integracoes-aws"
                 {...register('slug')}
-                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-lg text-sm text-slate-100 placeholder-slate-600 outline-none transition"
+                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 rounded-lg text-sm text-slate-100 placeholder-slate-600 outline-none transition"
               />
               {errors.slug && <p className="text-xs text-red-400 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> {errors.slug.message}</p>}
             </div>
@@ -244,7 +244,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                 rows={3}
                 placeholder="Um breve resumo do post que sera exibido nos cards da listagem..."
                 {...register('excerpt')}
-                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-lg text-sm text-slate-100 placeholder-slate-600 outline-none transition resize-none"
+                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 rounded-lg text-sm text-slate-100 placeholder-slate-600 outline-none transition resize-none"
               />
               {errors.excerpt && <p className="text-xs text-red-400 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> {errors.excerpt.message}</p>}
             </div>
@@ -300,7 +300,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                   className="flex-1 w-full p-4 bg-transparent text-slate-100 placeholder-slate-600 outline-none resize-none font-mono text-sm leading-relaxed min-h-[400px]"
                 />
               ) : (
-                <div className="flex-1 p-6 prose prose-invert prose-emerald max-w-none overflow-y-auto leading-relaxed text-slate-300 min-h-[400px]">
+                <div className="flex-1 p-6 prose prose-invert prose-accent max-w-none overflow-y-auto leading-relaxed text-slate-300 min-h-[400px]">
                   {watchContent ? (
                     <div className="space-y-4">
                       {/* Visualizador Simples de Markdown para o preview */}
@@ -385,7 +385,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full aspect-video border border-dashed border-slate-800 bg-slate-950/20 hover:bg-slate-950/50 hover:border-emerald-500/50 rounded-lg flex flex-col items-center justify-center gap-2 transition text-slate-500 hover:text-emerald-400"
+                    className="w-full aspect-video border border-dashed border-slate-800 bg-slate-950/20 hover:bg-slate-950/50 hover:border-accent-500/50 rounded-lg flex flex-col items-center justify-center gap-2 transition text-slate-500 hover:text-accent-400"
                   >
                     <UploadCloud className="w-8 h-8" />
                     <span className="text-xs font-medium">Fazer upload de imagem</span>
@@ -399,7 +399,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                       <span>{uploadProgress}%</span>
                     </div>
                     <div className="w-full bg-slate-950 h-1 rounded-full overflow-hidden border border-slate-900">
-                      <div className="bg-emerald-500 h-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                      <div className="bg-accent-500 h-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
                     </div>
                   </div>
                 )}
@@ -412,7 +412,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                   type="text"
                   placeholder="URL do vídeo (ex: https://youtube.com/...)"
                   {...register('video_url')}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-lg text-xs text-slate-100 placeholder-slate-600 outline-none transition"
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 rounded-lg text-xs text-slate-100 placeholder-slate-600 outline-none transition"
                 />
                 {errors.video_url && <p className="text-[10px] text-red-400">{errors.video_url.message}</p>}
               </div>
@@ -432,7 +432,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={handleTagKeyDown}
-                  className="flex-1 px-3 py-1.5 bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-lg text-xs text-slate-100 placeholder-slate-600 outline-none transition"
+                  className="flex-1 px-3 py-1.5 bg-slate-950 border border-slate-800 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 rounded-lg text-xs text-slate-100 placeholder-slate-600 outline-none transition"
                 />
                 <button
                   type="button"
@@ -468,7 +468,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                   type="text"
                   placeholder="Fallback: Título do post"
                   {...register('seo.meta_title')}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-lg text-xs text-slate-100 placeholder-slate-600 outline-none transition"
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 rounded-lg text-xs text-slate-100 placeholder-slate-600 outline-none transition"
                 />
               </div>
               <div className="space-y-1">
@@ -477,7 +477,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                   rows={3}
                   placeholder="Fallback: Resumo do post"
                   {...register('seo.meta_description')}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-lg text-xs text-slate-100 placeholder-slate-600 outline-none transition resize-none"
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 rounded-lg text-xs text-slate-100 placeholder-slate-600 outline-none transition resize-none"
                 />
               </div>
               <div className="space-y-1">
@@ -486,7 +486,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                   type="text"
                   placeholder="https://..."
                   {...register('seo.canonical_url')}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-lg text-xs text-slate-100 placeholder-slate-600 outline-none transition"
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 rounded-lg text-xs text-slate-100 placeholder-slate-600 outline-none transition"
                 />
               </div>
             </div>
@@ -497,7 +497,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
             <button
               type="submit"
               disabled={isLoading}
-              className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-500 active:opacity-90 disabled:opacity-50 text-white rounded-xl transition text-sm font-bold shadow-lg shadow-emerald-950/20"
+              className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-accent-600 hover:bg-accent-500 active:opacity-90 disabled:opacity-50 text-white rounded-xl transition text-sm font-bold shadow-lg shadow-accent-950/20"
             >
               <Save className="w-4 h-4" />
               Salvar Post
