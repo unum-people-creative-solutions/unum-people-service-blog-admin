@@ -24,6 +24,8 @@ import {
   AlertCircle,
   HelpCircle
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { blogApi, Post } from '@/lib/api';
 
 // Helper local de Slugify
@@ -310,7 +312,9 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                   {watchContent ? (
                     <div className="space-y-4">
                       {/* Visualizador Simples de Markdown para o preview */}
-                      <div className="whitespace-pre-wrap">{watchContent}</div>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {watchContent}
+                      </ReactMarkdown>
                     </div>
                   ) : (
                     <p className="text-slate-600 text-sm italic">Escreva algo no editor para visualizar o preview.</p>
