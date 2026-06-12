@@ -3,15 +3,17 @@
 import React from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertCircle, Building2 } from 'lucide-react';
 import Link from 'next/link';
 import PostForm from '@/components/blog/PostForm';
 import { blogApi } from '@/lib/api';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export default function EditPostPage() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
+  const { activeTenantName } = useAuthStore();
 
   // Query para buscar dados do post
   const { data: post, isLoading, isError, error } = useQuery({
@@ -77,9 +79,19 @@ export default function EditPostPage() {
         </div>
 
         {/* Title */}
-        <div className="space-y-1">
-          <h1 className="text-3xl font-extrabold tracking-tight text-white">Editar Post</h1>
-          <p className="text-slate-400 text-sm">Altere os campos que deseja atualizar no post.</p>
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-extrabold tracking-tight text-white">Editar Post</h1>
+            <p className="text-slate-400 text-sm">Altere os campos que deseja atualizar no post.</p>
+          </div>
+          {activeTenantName && (
+            <div className="inline-flex items-center gap-2.5 px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg shadow-sm">
+              <Building2 className="w-5 h-5 text-slate-500" />
+              <span className="text-sm font-semibold text-slate-300">
+                Blog: <span className="text-accent-400">{activeTenantName}</span>
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Error message */}

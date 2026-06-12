@@ -4,11 +4,8 @@ import React from 'react';
 import TenantSwitcher from './TenantSwitcher';
 import { useAuthStore } from '@/store/useAuthStore';
 
-// Mock lucide-react to avoid icon loading/rendering issues in test
 vi.mock('lucide-react', () => ({
   Building2: () => <div data-testid="building-icon" />,
-  ChevronDown: () => <div data-testid="chevron-icon" />,
-  Check: () => <div data-testid="check-icon" />,
 }));
 
 describe('TenantSwitcher Component', () => {
@@ -28,7 +25,6 @@ describe('TenantSwitcher Component', () => {
     const { container } = render(<TenantSwitcher onTenantChange={onTenantChangeMock} />);
     expect(container.firstChild).toBeNull();
 
-    // With 1 tenant
     useAuthStore.setState({
       availableTenants: [{ id: 'tenant-1', name: 'Tenant One' }],
     });
@@ -36,7 +32,7 @@ describe('TenantSwitcher Component', () => {
     expect(container1.firstChild).toBeNull();
   });
 
-  it('renders inline selection when activeTenantId is null and there are multiple tenants', () => {
+  it('renders all tenant tabs when there are multiple tenants', () => {
     useAuthStore.setState({
       availableTenants: [
         { id: 'tenant-1', name: 'Tenant One' },
@@ -48,20 +44,12 @@ describe('TenantSwitcher Component', () => {
 
     render(<TenantSwitcher onTenantChange={onTenantChangeMock} />);
 
-    // Should display inline selection options
-    expect(screen.getByText('Selecionar Tenant:')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Tenant One' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Tenant Two' })).toBeInTheDocument();
-
-    // Click on one options
-    fireEvent.click(screen.getByRole('button', { name: 'Tenant Two' }));
-
-    expect(useAuthStore.getState().activeTenantId).toBe('tenant-2');
-    expect(useAuthStore.getState().activeTenantName).toBe('Tenant Two');
-    expect(onTenantChangeMock).toHaveBeenCalled();
+    expect(screen.getByRole('tablist', { name: 'Selecionar Tenant' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Tenant One/ })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Tenant Two/ })).toBeInTheDocument();
   });
 
-  it('renders badge with active tenant name when activeTenantId is set', () => {
+  it('marks the active tenant tab as aria-selected=true', () => {
     useAuthStore.setState({
       availableTenants: [
         { id: 'tenant-1', name: 'Tenant One' },
@@ -73,11 +61,11 @@ describe('TenantSwitcher Component', () => {
 
     render(<TenantSwitcher onTenantChange={onTenantChangeMock} />);
 
-    expect(screen.getByText('Tenant One')).toBeInTheDocument();
-    expect(screen.getByTestId('building-icon')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Tenant One/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /Tenant Two/ })).toHaveAttribute('aria-selected', 'false');
   });
 
-  it('opens dropdown and allows changing active tenant when badge is clicked', () => {
+  it('switches tenant when a different tab is clicked', () => {
     useAuthStore.setState({
       availableTenants: [
         { id: 'tenant-1', name: 'Tenant One' },
@@ -89,27 +77,28 @@ describe('TenantSwitcher Component', () => {
 
     render(<TenantSwitcher onTenantChange={onTenantChangeMock} />);
 
-    // Click badge to open dropdown
-    fireEvent.click(screen.getByText('Tenant One'));
-
-    // Check that dropdown options are visible
-    const optionOne = screen.getByRole('menuitem', { name: 'Tenant One' });
-    const optionTwo = screen.getByRole('menuitem', { name: 'Tenant Two' });
-
-    expect(optionOne).toBeInTheDocument();
-    expect(optionTwo).toBeInTheDocument();
-
-    // Active one should have a checkmark
-    expect(screen.getByTestId('check-icon')).toBeInTheDocument();
-
-    // Click optionTwo
-    fireEvent.click(optionTwo);
+    fireEvent.click(screen.getByRole('tab', { name: /Tenant Two/ }));
 
     expect(useAuthStore.getState().activeTenantId).toBe('tenant-2');
     expect(useAuthStore.getState().activeTenantName).toBe('Tenant Two');
-    expect(onTenantChangeMock).toHaveBeenCalled();
+    expect(onTenantChangeMock).toHaveBeenCalledTimes(1);
+  });
 
-    // Dropdown should be closed (options not visible anymore)
-    expect(screen.queryByRole('menuitem', { name: 'Tenant One' })).not.toBeInTheDocument();
+  it('does not call onTenantChange when clicking the already active tenant', () => {
+    useAuthStore.setState({
+      availableTenants: [
+        { id: 'tenant-1', name: 'Tenant One' },
+        { id: 'tenant-2', name: 'Tenant Two' },
+      ],
+      activeTenantId: 'tenant-1',
+      activeTenantName: 'Tenant One',
+    });
+
+    render(<TenantSwitcher onTenantChange={onTenantChangeMock} />);
+
+    fireEvent.click(screen.getByRole('tab', { name: /Tenant One/ }));
+
+    expect(onTenantChangeMock).not.toHaveBeenCalled();
+    expect(useAuthStore.getState().activeTenantId).toBe('tenant-1');
   });
 });
