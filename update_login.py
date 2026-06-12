@@ -1,4 +1,8 @@
-'use client';
+import os
+
+file_path = "src/app/login/page.tsx"
+
+content = """'use client';
 
 import { useState } from 'react';
 import Image from 'next/image';
@@ -278,3 +282,9 @@ export default function LoginPage() {
     </div>
   );
 }
+"""
+
+with open(file_path, "w") as f:
+    f.write(content)
+
+print("Done")

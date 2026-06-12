@@ -16,6 +16,8 @@ export const metadata: Metadata = {
   description: "Gestão de Posts e Conteúdo para Clientes",
 };
 
+import CookieBanner from "@/components/CookieBanner";
+
 export default function RootLayout({
   children,
   modal,
@@ -34,6 +36,7 @@ export default function RootLayout({
             </ServiceGuard>
           </AuthGuard>
         </Providers>
+        <CookieBanner />
       </body>
     </html>
   );
