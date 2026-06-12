@@ -21,8 +21,11 @@ import {
   PenTool,
   UploadCloud,
   FileImage,
-  AlertCircle
+  AlertCircle,
+  HelpCircle
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { blogApi, Post } from '@/lib/api';
 
 // Helper local de Slugify
@@ -133,7 +136,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
 
     try {
       // 1. Obter URL assinada
-      const { url } = await blogApi.getUploadURL(file.name, file.type);
+      const { url, public_url } = await blogApi.getUploadURL(file.name, file.type);
       setUploadProgress(30);
 
       // 2. Fazer PUT direto no S3 com XMLHttp para acompanhar progresso
@@ -151,8 +154,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
       xhr.onload = () => {
         if (xhr.status === 200) {
           // Extrair a URL limpa do bucket S3 removendo query params da URL assinada
-          const cleanUrl = url.split('?')[0];
-          setValue('cover_image_url', cleanUrl, { shouldValidate: true });
+          setValue('cover_image_url', public_url, { shouldValidate: true });
           setUploading(false);
         } else {
           setUploadError('Erro ao enviar imagem ao S3');
@@ -225,7 +227,12 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
 
             {/* Slug */}
             <div className="space-y-1">
-              <label htmlFor="slug-input" className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Slug do Post</label>
+              <label htmlFor="slug-input" className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                Slug do Post
+                                <span title="A URL que as pessoas vão acessar">
+                  <HelpCircle className="w-3.5 h-3.5 text-slate-500" />
+                </span>
+              </label>
               <input
                 id="slug-input"
                 type="text"
@@ -233,6 +240,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                 {...register('slug')}
                 className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 rounded-lg text-sm text-slate-100 placeholder-slate-600 outline-none transition"
               />
+              <p className="text-[10px] text-slate-500 font-medium">A URL amigável do post (ex: meu-primeiro-post). Se deixar em branco, o sistema criará sozinho com base no Título.</p>
               {errors.slug && <p className="text-xs text-red-400 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> {errors.slug.message}</p>}
             </div>
 
@@ -304,7 +312,9 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                   {watchContent ? (
                     <div className="space-y-4">
                       {/* Visualizador Simples de Markdown para o preview */}
-                      <div className="whitespace-pre-wrap">{watchContent}</div>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {watchContent}
+                      </ReactMarkdown>
                     </div>
                   ) : (
                     <p className="text-slate-600 text-sm italic">Escreva algo no editor para visualizar o preview.</p>
@@ -459,9 +469,13 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
 
           {/* Metadados SEO */}
           <div className="p-6 rounded-xl bg-slate-900/40 border border-slate-800/80 backdrop-blur-md space-y-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-white">Configurações SEO</h3>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
+              Configurações SEO               <span title="Ajuda o Google a entender sobre o que é seu post">
+                <HelpCircle className="w-4 h-4 text-slate-400" />
+              </span>
+            </h3>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Meta Title</label>
                 <input
@@ -470,6 +484,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                   {...register('seo.meta_title')}
                   className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 rounded-lg text-xs text-slate-100 placeholder-slate-600 outline-none transition"
                 />
+                <p className="text-[10px] text-slate-500 font-medium">Como o título aparecerá no Google. Se deixar em branco, usaremos o Título do post automaticamente.</p>
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Meta Description</label>
@@ -479,6 +494,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                   {...register('seo.meta_description')}
                   className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 rounded-lg text-xs text-slate-100 placeholder-slate-600 outline-none transition resize-none"
                 />
+                <p className="text-[10px] text-slate-500 font-medium">O resuminho (120-150 caracteres) que aparece logo abaixo do título no Google. Se vazio, usará o Resumo do post.</p>
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Canonical URL</label>
@@ -488,6 +504,9 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                   {...register('seo.canonical_url')}
                   className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 rounded-lg text-xs text-slate-100 placeholder-slate-600 outline-none transition"
                 />
+                <p className="text-[10px] text-slate-500 font-medium">
+                  Se você copiou este texto do seu LinkedIn ou Medium, cole o link original aqui para o Google não punir o blog por plágio. Se for um post inédito, deixe em branco.
+                </p>
               </div>
             </div>
           </div>
