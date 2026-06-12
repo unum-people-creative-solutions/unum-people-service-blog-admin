@@ -141,7 +141,7 @@ export default function LoginPage() {
         <div className="absolute top-0 right-0 w-96 h-96 bg-[radial-gradient(circle_at_center,rgba(255,61,0,0.06),transparent_60%)] pointer-events-none" />
         <div className="w-full max-w-md bg-slate-900/50 backdrop-blur-xl p-8 rounded-2xl shadow-xl border border-slate-800/80 relative z-10">
           <div className="flex justify-center mb-6">
-            <Image src="/logo_texto.png" alt="Unum People" width={180} height={48} className="object-contain" priority />
+            <Image src="/logo_texto.png" alt="Unum People" width={180} height={48} className="object-contain w-auto h-auto" priority />
           </div>
           <h1 className="text-2xl font-bold mb-2 text-white text-center">Bem-vindo(a)!</h1>
           <p className="text-slate-400 text-sm text-center mb-8">Este é seu primeiro acesso. Por favor, defina uma senha definitiva.</p>
@@ -197,7 +197,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md bg-slate-900/50 backdrop-blur-xl p-8 rounded-2xl shadow-xl border border-slate-800/80 relative z-10">
         <div className="flex flex-col items-center mb-10 text-center">
           <div className="mb-4">
-            <Image src="/logo_simbolo.png" alt="Unum People" width={64} height={64} className="object-contain" />
+            <Image src="/logo_simbolo.png" alt="Unum People" width={64} height={64} className="object-contain w-auto h-auto" />
           </div>
           <h1 className="text-3xl font-black text-white uppercase tracking-tighter">
             Blog <span className="text-accent-500">Admin</span>

@@ -97,7 +97,7 @@ export default function PostsPage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           
           <div className="mb-8">
-            <Image src="/logo.png" alt="Unum People" width={180} height={48} className="object-contain" />
+            <Image src="/logo.png" alt="Unum People" width={180} height={48} className="object-contain w-auto h-auto" />
           </div>
           <div className="space-y-1">
             <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
@@ -204,7 +204,7 @@ export default function PostsPage() {
                       <td className="py-4 px-6 max-w-md">
                         
           <div className="mb-8">
-            <Image src="/logo.png" alt="Unum People" width={180} height={48} className="object-contain" />
+            <Image src="/logo.png" alt="Unum People" width={180} height={48} className="object-contain w-auto h-auto" />
           </div>
           <div className="space-y-1">
                           <p className="font-bold text-white text-base hover:text-accent-400 transition">

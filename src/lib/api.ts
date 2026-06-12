@@ -89,7 +89,7 @@ export const blogApi = {
   },
 
   getUploadURL: async (filename: string, contentType: string): Promise<{ url: string }> => {
-    return fetchWithAuth('/admin/blog/upload-url', {
+    return fetchWithAuth('/admin/blog/media/upload-url', {
       method: 'POST',
       body: JSON.stringify({ filename, content_type: contentType }),
     });
