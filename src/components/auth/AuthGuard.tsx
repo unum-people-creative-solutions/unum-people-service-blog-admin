@@ -8,7 +8,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, hasHydrated } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
-  const isProtectedRoute = pathname !== '/login' && pathname !== '/403';
+  const isProtectedRoute = pathname !== '/login' && pathname !== '/403' && pathname !== '/forgot-password';
 
   useEffect(() => {
     if (isProtectedRoute && hasHydrated) {

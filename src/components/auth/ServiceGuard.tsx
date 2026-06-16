@@ -10,7 +10,7 @@ export default function ServiceGuard({ children }: { children: React.ReactNode }
   const { tenants, tenantsLoaded } = useTenants();
   const router = useRouter();
   const pathname = usePathname();
-  const isProtectedRoute = pathname !== '/login' && pathname !== '/403';
+  const isProtectedRoute = pathname !== '/login' && pathname !== '/403' && pathname !== '/forgot-password';
 
   useEffect(() => {
     if (isProtectedRoute && hasHydrated && isAuthenticated) {
