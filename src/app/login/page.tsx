@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -25,6 +25,14 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const hasHydrated = useAuthStore((state) => state.hasHydrated);
+
+  useEffect(() => {
+    if (hasHydrated && isAuthenticated) {
+      router.replace('/posts');
+    }
+  }, [hasHydrated, isAuthenticated, router]);
 
   const {
     register,
@@ -251,6 +259,11 @@ export default function LoginPage() {
               />
             </div>
             {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
+            <div className="flex justify-end mt-2">
+              <Link href="/forgot-password" className="text-xs font-semibold text-accent-500 hover:text-accent-400 hover:underline transition-colors">
+                Esqueci a senha?
+              </Link>
+            </div>
           </div>
 
           <button

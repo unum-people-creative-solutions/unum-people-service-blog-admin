@@ -16,6 +16,7 @@ import {
   CheckCircle,
   Clock,
   AlertTriangle,
+  LogOut,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { blogApi, Post } from '@/lib/api';
@@ -128,8 +129,19 @@ export default function PostsPage() {
               </p>
             </div>
           </div>
-          <div>
+          <div className="flex items-center gap-3">
             {newPostAction}
+            <button
+              onClick={() => {
+                useAuthStore.getState().logout();
+                window.location.href = '/login';
+              }}
+              aria-label="Sair"
+              title="Sair do sistema"
+              className="p-2 rounded-lg border border-slate-800 bg-slate-950/40 hover:bg-slate-900 text-slate-400 hover:text-red-400 hover:border-slate-700/80 transition"
+            >
+              <LogOut className="w-4 h-4" aria-hidden="true" />
+            </button>
           </div>
         </div>
 
