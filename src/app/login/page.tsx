@@ -60,7 +60,7 @@ export default function LoginPage() {
       let enabledServices: string[] = [];
 
       // Verify if user has blog access
-      if (groups.includes('Admins') || groups.includes('GlobalAdmin')) {
+      if (groups.includes('Admins') || groups.includes('GlobalAdmin') || groups.includes('TenantAdmin')) {
         enabledServices = ['blog'];
       } else {
         try {

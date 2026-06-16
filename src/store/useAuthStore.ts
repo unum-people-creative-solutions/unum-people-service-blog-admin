@@ -69,7 +69,7 @@ export const useAuthStore = create<AuthState>()(
         enabledServices,
         refreshToken: refreshToken || null,
         isAuthenticated: true,
-        isAdmin: user.groups.includes('Admins') || user.groups.includes('GlobalAdmin')
+        isAdmin: user.groups.includes('Admins') || user.groups.includes('GlobalAdmin') || user.groups.includes('TenantAdmin')
       }),
       setToken: (token) => set({ token }),
       logout: () => set({

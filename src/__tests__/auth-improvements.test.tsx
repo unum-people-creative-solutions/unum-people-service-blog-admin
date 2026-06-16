@@ -34,7 +34,7 @@ vi.mock('@/store/useAuthStore', () => ({
 describe('Authentication Flow & Layout Tests', () => {
   it('Should render the "Esqueci a senha" link on Login page', () => {
     render(<LoginPage />);
-    const forgotPasswordLink = screen.getByRole('link', { name: /esqueci a senha/i });
+    const forgotPasswordLink = screen.getByRole('link', { name: /esqueceu a senha/i });
     expect(forgotPasswordLink).toBeInTheDocument();
     expect(forgotPasswordLink).toHaveAttribute('href', '/forgot-password');
   });
