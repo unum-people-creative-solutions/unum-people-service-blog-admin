@@ -8,7 +8,7 @@ import {
   Search,
   Trash2,
   Edit3,
-  Eye,
+  Upload,
   EyeOff,
   Tag,
   Calendar,
@@ -172,7 +172,7 @@ export default function PostsPage() {
                   onClick={() => setStatusFilter('PUBLISHED')}
                   className={`flex-1 md:flex-initial px-4 py-2 text-xs font-semibold rounded-lg border transition ${
                     statusFilter === 'PUBLISHED'
-                      ? 'bg-accent-950/50 border-accent-800/40 text-accent-400'
+                      ? 'bg-green-950/50 border-green-800/40 text-green-400'
                       : 'bg-transparent border-slate-800 text-slate-400 hover:border-slate-700'
                   }`}
                 >
@@ -249,7 +249,7 @@ export default function PostsPage() {
                         </td>
                         <td className="py-4 px-6">
                           {post.status === 'PUBLISHED' ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-accent-500/10 border border-accent-500/20 text-accent-400">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-500/10 border border-green-500/20 text-green-400">
                               <CheckCircle className="w-3.5 h-3.5" />
                               Publicado
                             </span>
@@ -292,10 +292,10 @@ export default function PostsPage() {
                               className={`p-2 rounded-lg border transition ${
                                 post.status === 'PUBLISHED'
                                   ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
-                                  : 'bg-accent-950/20 border-accent-800/30 text-accent-400 hover:bg-accent-950/40'
+                                  : 'bg-green-950/20 border-green-800/30 text-green-400 hover:bg-green-950/40'
                               }`}
                             >
-                              {post.status === 'PUBLISHED' ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
+                              {post.status === 'PUBLISHED' ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Upload className="w-4 h-4" aria-hidden="true" />}
                             </button>
                           )}
                           <Link
