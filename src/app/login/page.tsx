@@ -261,7 +261,7 @@ export default function LoginPage() {
             {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
             <div className="flex justify-end mt-2">
               <Link href="/forgot-password" className="text-xs font-semibold text-accent-500 hover:text-accent-400 hover:underline transition-colors">
-                Esqueci a senha?
+                Esqueceu a senha?
               </Link>
             </div>
           </div>
