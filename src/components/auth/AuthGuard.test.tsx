@@ -214,5 +214,49 @@ describe('AuthGuard', () => {
       })
       expect(screen.queryByTestId('service-agreement-gate')).not.toBeInTheDocument()
     })
+
+    // SUG-3 (/local-review): quem aceita é o TenantAdmin, em outra sessão —
+    // a tela de espera precisa se auto-atualizar (polling), não depender de
+    // um F5 manual do usuário comum bloqueado.
+    it('faz polling do status enquanto aguarda e libera o acesso assim que o TenantAdmin aceita', async () => {
+      useAuthStore.setState({ hasHydrated: true, isAuthenticated: true })
+      vi.useFakeTimers()
+      try {
+        ;(serviceAgreementApi.getMyStatus as any)
+          .mockResolvedValueOnce({
+            status: 'pendente',
+            term_name: 'Termo Blog',
+            required_version: 1,
+            document_url: 'https://cdn/v1.html',
+            can_accept: false,
+          })
+          .mockResolvedValue({
+            status: 'aceito',
+            term_name: 'Termo Blog',
+            required_version: 1,
+            document_url: 'https://cdn/v1.html',
+            can_accept: false,
+          })
+
+        render(
+          <AuthGuard>
+            <main>Dashboard protegido</main>
+          </AuthGuard>
+        )
+
+        await vi.waitFor(() => {
+          expect(screen.getByTestId('service-agreement-waiting')).toBeInTheDocument()
+        })
+
+        await vi.advanceTimersByTimeAsync(15000)
+
+        await vi.waitFor(() => {
+          expect(screen.queryByTestId('service-agreement-waiting')).not.toBeInTheDocument()
+        })
+        expect(serviceAgreementApi.getMyStatus).toHaveBeenCalledTimes(2)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
   })
 })
