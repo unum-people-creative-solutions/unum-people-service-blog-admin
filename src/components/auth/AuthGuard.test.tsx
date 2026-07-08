@@ -196,5 +196,23 @@ describe('AuthGuard', () => {
       })
       expect(serviceAgreementApi.getMyStatus).not.toHaveBeenCalled()
     })
+
+    // Achado do /local-review: falha ao buscar o status inicial resultava em
+    // "fail-open" — contraria D6 ("enforcement real"). Deve ser fail-closed.
+    it('erro ao buscar o status inicial bloqueia (fail-closed), nunca libera o acesso', async () => {
+      useAuthStore.setState({ hasHydrated: true, isAuthenticated: true })
+      ;(serviceAgreementApi.getMyStatus as any).mockRejectedValue(new Error('network error'))
+
+      render(
+        <AuthGuard>
+          <main>Dashboard protegido</main>
+        </AuthGuard>
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('service-agreement-waiting')).toBeInTheDocument()
+      })
+      expect(screen.queryByTestId('service-agreement-gate')).not.toBeInTheDocument()
+    })
   })
 })

@@ -26,9 +26,17 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     if (isProtectedRoute && hasHydrated && isAuthenticated) {
       // Gate independente do fluxo de LGPD (login/troca de senha) — os dois
       // podem coexistir na mesma tela, ver HANDOFF-fase5.md.
+      // Fail-closed: erro na busca vira pendente/sem permissão de aceite
+      // (tela de espera), nunca libera o acesso.
       serviceAgreementApi.getMyStatus()
         .then(setAgreementStatus)
-        .catch(() => setAgreementStatus(null));
+        .catch(() => setAgreementStatus({
+          status: 'pendente',
+          term_name: '',
+          required_version: 0,
+          document_url: '',
+          can_accept: false,
+        }));
     } else {
       setAgreementStatus(null);
     }
