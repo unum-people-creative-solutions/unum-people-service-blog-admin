@@ -88,7 +88,26 @@ function getEnvConfig() {
   return { domain, clientId };
 }
 
+// BUG DE PRODUÇÃO (2026-07): "Sair" chama `logout()` local (síncrono) antes de
+// `logoutFromHostedUI()`. Isso derruba `isAuthenticated`, e no próximo render
+// o AuthGuard reage a essa mudança chamando ESTE MESMO `redirectToHostedUI`
+// (autorização) — como ele é assíncrono (PKCE), às vezes termina DEPOIS do
+// logout explícito e sobrescreve `window.location.href`, reautenticando o
+// usuário silenciosamente via SSO (sessão do Hosted UI ainda válida) — o
+// logout "não funciona". A janela é curta (é uma corrida entre dois redirects
+// no mesmo tick), então uma flag de curta duração basta e se autolimpa.
+const LOGOUT_IN_PROGRESS_KEY = "logout_in_progress_at";
+const LOGOUT_GUARD_WINDOW_MS = 5000;
+
+function isLogoutInProgress(): boolean {
+  const raw = sessionStorage.getItem(LOGOUT_IN_PROGRESS_KEY);
+  if (!raw) return false;
+  const elapsed = Date.now() - Number(raw);
+  return elapsed >= 0 && elapsed < LOGOUT_GUARD_WINDOW_MS;
+}
+
 export async function redirectToHostedUI(returnTo: string): Promise<void> {
+  if (isLogoutInProgress()) return;
   const verifier = generateCodeVerifier();
   sessionStorage.setItem(PKCE_VERIFIER_STORAGE_KEY, verifier);
   sessionStorage.setItem(AUTH_RETURN_TO_STORAGE_KEY, returnTo);
@@ -109,6 +128,7 @@ export async function redirectToHostedUI(returnTo: string): Promise<void> {
 // login de novo, então o usuário nunca saía de fato. Logout real precisa
 // passar pelo endpoint `/logout` do Cognito, que encerra a sessão SSO.
 export function logoutFromHostedUI(): void {
+  sessionStorage.setItem(LOGOUT_IN_PROGRESS_KEY, String(Date.now()));
   const { domain, clientId } = getEnvConfig();
   const logoutUri = `${window.location.origin}/`;
   const query = new URLSearchParams({

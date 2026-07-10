@@ -107,5 +107,22 @@ describe("pkce", () => {
       expect(url.searchParams.get("client_id")).toBe("blog-client-id");
       expect(url.searchParams.get("logout_uri")).toBe("https://blog.unumpeople.com.br/");
     });
+
+    // BUG DE PRODUÇÃO (2026-07): "Sair" chamava logout() local (síncrono) e,
+    // no próximo render, o AuthGuard reagia à mudança de isAuthenticated
+    // disparando SEU PRÓPRIO redirectToHostedUI (autorização) — como esse é
+    // assíncrono (PKCE), às vezes terminava DEPOIS do logout explícito e
+    // sobrescrevia window.location.href, reautenticando o usuário
+    // silenciosamente via SSO (o Cognito ainda tinha sessão válida).
+    it("um redirectToHostedUI disparado logo após logoutFromHostedUI nunca sobrescreve a navegação de logout", async () => {
+      window.sessionStorage.clear();
+      logoutFromHostedUI();
+      const hrefAfterLogout = window.location.href;
+      expect(hrefAfterLogout).toContain("/logout");
+
+      await redirectToHostedUI("/posts");
+
+      expect(window.location.href).toBe(hrefAfterLogout);
+    });
   });
 });
