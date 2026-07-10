@@ -22,6 +22,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { blogApi, Post } from '@/lib/api';
 import TenantSwitcher from '@/components/TenantSwitcher';
 import { useAuthStore } from '@/store/useAuthStore';
+import { logoutFromHostedUI } from '@/lib/pkce';
 
 export default function PostsPage() {
   const queryClient = useQueryClient();
@@ -134,7 +135,7 @@ export default function PostsPage() {
             <button
               onClick={() => {
                 useAuthStore.getState().logout();
-                window.location.href = '/login';
+                logoutFromHostedUI();
               }}
               aria-label="Sair"
               title="Sair do sistema"
