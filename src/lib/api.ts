@@ -1,4 +1,5 @@
 import { useAuthStore, Tenant } from '@/store/useAuthStore';
+import { redirectToHostedUI } from '@/lib/pkce';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -25,7 +26,8 @@ async function fetchWithAuth(path: string, options: RequestInit = {}) {
   if (!response.ok) {
     if (response.status === 401) {
       useAuthStore.getState().logout();
-      window.location.href = '/login';
+      // TASK-FE-BLOG-003: não existe mais página /login própria do app.
+      void redirectToHostedUI(window.location.pathname);
     }
     const errData = await response.json().catch(() => ({}));
     throw new Error(errData.error || `HTTP error! status: ${response.status}`);

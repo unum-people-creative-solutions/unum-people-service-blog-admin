@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ShieldAlert, ArrowLeft } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
+import { logoutFromHostedUI } from '@/lib/pkce';
 
 export default function ForbiddenPage() {
   const { logout } = useAuthStore();
@@ -35,7 +36,7 @@ export default function ForbiddenPage() {
           <button
             onClick={() => {
               logout();
-              window.location.href = '/login';
+              logoutFromHostedUI();
             }}
             className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-800/80 border border-slate-700/80 hover:border-slate-600 rounded-xl transition text-sm font-medium text-slate-200"
           >

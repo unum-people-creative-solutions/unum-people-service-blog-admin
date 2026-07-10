@@ -2,9 +2,9 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import ServiceAgreementWaiting from './ServiceAgreementWaiting';
 
-const mockPush = vi.fn();
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: mockPush }),
+const mockLogoutFromHostedUI = vi.fn();
+vi.mock('@/lib/pkce', () => ({
+  logoutFromHostedUI: (...args: unknown[]) => mockLogoutFromHostedUI(...args),
 }));
 
 const mockLogout = vi.fn();
@@ -22,13 +22,15 @@ describe('ServiceAgreementWaiting', () => {
   // Achado do usuário: logar com uma conta sem tenant associado prendia a
   // pessoa nesta tela para sempre — sem nenhuma forma de sair a não ser
   // encerrar a sessão manualmente (ex: limpar localStorage).
-  it('permite sair e voltar para o login, para quem ficou preso aqui por engano', () => {
+  // TASK-FE-BLOG-003: não existe mais página /login própria do app — sair
+  // agora manda de volta para o Hosted UI (Cognito).
+  it('permite sair e voltar para o login (Hosted UI), para quem ficou preso aqui por engano', () => {
     render(<ServiceAgreementWaiting />);
 
     const backButton = screen.getByRole('button', { name: /sair e voltar para o login/i });
     fireEvent.click(backButton);
 
     expect(mockLogout).toHaveBeenCalled();
-    expect(mockPush).toHaveBeenCalledWith('/login');
+    expect(mockLogoutFromHostedUI).toHaveBeenCalled();
   });
 });

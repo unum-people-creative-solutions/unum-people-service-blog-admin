@@ -5,21 +5,22 @@ import '@testing-library/jest-dom'
 import AuthGuard from './AuthGuard'
 import { useAuthStore } from '@/store/useAuthStore'
 import { serviceAgreementApi } from '@/lib/api'
+import { redirectToHostedUI } from '@/lib/pkce'
 
-const pushMock = vi.fn()
 let pathname = '/posts'
 
 vi.mock('next/navigation', () => ({
   usePathname: () => pathname,
-  useRouter: () => ({
-    push: pushMock,
-  }),
 }))
 
 vi.mock('@/lib/api', () => ({
   serviceAgreementApi: {
     getMyStatus: vi.fn(),
   },
+}))
+
+vi.mock('@/lib/pkce', () => ({
+  redirectToHostedUI: vi.fn(),
 }))
 
 vi.mock('./ServiceAgreementGate', () => ({
@@ -37,7 +38,6 @@ vi.mock('./ServiceAgreementWaiting', () => ({
 describe('AuthGuard', () => {
   beforeEach(() => {
     pathname = '/posts'
-    pushMock.mockClear()
     vi.clearAllMocks()
     useAuthStore.setState({
       user: null,
@@ -68,10 +68,11 @@ describe('AuthGuard', () => {
 
     expect(screen.getByRole('status', { name: /validando sessao/i })).toBeInTheDocument()
     expect(screen.queryByText('Dashboard protegido')).not.toBeInTheDocument()
-    expect(pushMock).not.toHaveBeenCalled()
+    expect(redirectToHostedUI).not.toHaveBeenCalled()
   })
 
-  it('redirects protected routes after hydration when not authenticated', async () => {
+  // TASK-FE-BLOG-003: não existe mais página /login própria do app.
+  it('redirects protected routes to the Hosted UI (Cognito) after hydration when not authenticated', async () => {
     useAuthStore.setState({ hasHydrated: true })
 
     render(
@@ -80,7 +81,7 @@ describe('AuthGuard', () => {
       </AuthGuard>
     )
 
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/login'))
+    await waitFor(() => expect(redirectToHostedUI).toHaveBeenCalledWith('/posts'))
   })
 
   it('renders children if authenticated', async () => {
@@ -93,7 +94,7 @@ describe('AuthGuard', () => {
     )
 
     expect(screen.getByText('Dashboard protegido')).toBeInTheDocument()
-    expect(pushMock).not.toHaveBeenCalled()
+    expect(redirectToHostedUI).not.toHaveBeenCalled()
   })
 
   describe('TASK-FE-008 — Termo de Contratação de Serviço', () => {
@@ -182,7 +183,7 @@ describe('AuthGuard', () => {
     })
 
     it('não busca o status do termo em rotas públicas', async () => {
-      pathname = '/login'
+      pathname = '/403'
       useAuthStore.setState({ hasHydrated: true, isAuthenticated: false })
 
       render(

@@ -1,26 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { serviceAgreementApi, ServiceAgreementStatusResponse } from '@/lib/api';
+import { redirectToHostedUI } from '@/lib/pkce';
 import ServiceAgreementGate from './ServiceAgreementGate';
 import ServiceAgreementWaiting from './ServiceAgreementWaiting';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, hasHydrated } = useAuthStore();
-  const router = useRouter();
   const pathname = usePathname();
-  const isProtectedRoute = pathname !== '/login' && pathname !== '/403' && pathname !== '/forgot-password';
+  const isProtectedRoute = pathname !== '/403' && pathname !== '/auth/callback';
   const [agreementStatus, setAgreementStatus] = useState<ServiceAgreementStatusResponse | null>(null);
 
   useEffect(() => {
     if (isProtectedRoute && hasHydrated) {
       if (!isAuthenticated) {
-        router.push('/login');
+        void redirectToHostedUI(pathname);
       }
     }
-  }, [isAuthenticated, router, isProtectedRoute, hasHydrated]);
+  }, [isAuthenticated, pathname, isProtectedRoute, hasHydrated]);
 
   useEffect(() => {
     if (isProtectedRoute && hasHydrated && isAuthenticated) {
