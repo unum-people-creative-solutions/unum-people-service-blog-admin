@@ -74,12 +74,18 @@ export async function exchangeCodeForTokens(params: {
   return response.json();
 }
 
-function requireEnv(key: string): string {
-  const value = process.env[key];
-  if (!value) {
-    throw new Error(`[pkce] Variável de ambiente não configurada: ${key}`);
+function getEnvConfig() {
+  const domain = process.env.NEXT_PUBLIC_COGNITO_HOSTED_UI_DOMAIN;
+  const clientId = process.env.NEXT_PUBLIC_COGNITO_BLOG_CLIENT_ID;
+
+  if (!domain) {
+    throw new Error("[pkce] Variável de ambiente não configurada: NEXT_PUBLIC_COGNITO_HOSTED_UI_DOMAIN");
   }
-  return value;
+  if (!clientId) {
+    throw new Error("[pkce] Variável de ambiente não configurada: NEXT_PUBLIC_COGNITO_BLOG_CLIENT_ID");
+  }
+
+  return { domain, clientId };
 }
 
 export async function redirectToHostedUI(returnTo: string): Promise<void> {
@@ -87,8 +93,7 @@ export async function redirectToHostedUI(returnTo: string): Promise<void> {
   sessionStorage.setItem(PKCE_VERIFIER_STORAGE_KEY, verifier);
   sessionStorage.setItem(AUTH_RETURN_TO_STORAGE_KEY, returnTo);
   const codeChallenge = await generateCodeChallenge(verifier);
-  const domain = requireEnv("NEXT_PUBLIC_COGNITO_HOSTED_UI_DOMAIN");
-  const clientId = requireEnv("NEXT_PUBLIC_COGNITO_BLOG_CLIENT_ID");
+  const { domain, clientId } = getEnvConfig();
   const url = buildAuthorizeUrl({
     domain,
     clientId,
@@ -104,8 +109,7 @@ export async function redirectToHostedUI(returnTo: string): Promise<void> {
 // login de novo, então o usuário nunca saía de fato. Logout real precisa
 // passar pelo endpoint `/logout` do Cognito, que encerra a sessão SSO.
 export function logoutFromHostedUI(): void {
-  const domain = requireEnv("NEXT_PUBLIC_COGNITO_HOSTED_UI_DOMAIN");
-  const clientId = requireEnv("NEXT_PUBLIC_COGNITO_BLOG_CLIENT_ID");
+  const { domain, clientId } = getEnvConfig();
   const logoutUri = `${window.location.origin}/`;
   const query = new URLSearchParams({
     client_id: clientId,
@@ -113,4 +117,5 @@ export function logoutFromHostedUI(): void {
   });
   window.location.href = `${domain}/logout?${query.toString()}`;
 }
+
 
