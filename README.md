@@ -13,7 +13,7 @@ Painel de administração (Next.js App Router) para gestão do blog instituciona
 ## 1. Funcionalidades
 - **Gestão de Posts:** criação, edição, exclusão, publicação/despublicação (`blogApi`, `src/lib/api.ts`), com upload de mídia via URL assinada.
 - **Multi-tenant:** seletor de tenant (`TenantSwitcher`), com acesso condicionado ao serviço `blog` contratado pelo tenant (`ServiceGuard` — bloqueia em `/403` quando o tenant não tem o serviço ou não tem nenhum tenant vinculado).
-- **Termo de Contratação de Serviço:** mesmo gate do CRM (`AuthGuard`/`ServiceAgreementGate`/`ServiceAgreementWaiting`) — `TenantAdmin` aceita, demais usuários veem tela de espera até o aceite acontecer.
+- **Termos de Uso e Políticas Pendentes:** integrado via `PendingTermsGate`, que consulta `GET /me/terms/status` (via `termsApi.getStatus()`, com propagação automática de `X-Tenant-ID` por `fetchWithAuth`). Se houver alguma pendência acionável de termos ou políticas, o usuário é redirecionado para o Portal do Cliente (`customer.unumpeople.com.br`) para aceitação.
 
 ## 2. Autenticação (Cognito Hosted UI / SSO)
 Não existe mais tela de login/esqueci-senha própria do app — `AuthGuard` redireciona (`window.location.href`, PKCE) para o domínio Hosted UI (`auth.unumpeople.com.br`, App Client dedicado deste app, provisionado em `Infraestrutura/unum-people-services-infra`). Fluxo:
