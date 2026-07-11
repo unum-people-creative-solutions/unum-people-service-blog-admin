@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Cookie } from "lucide-react";
 
-// TODO: substituir pelo content_html_url real após TASK-CONTENT-001 publicar o Term v1
-const POLITICA_PRIVACIDADE_URL = "PLACEHOLDER_POLITICA_PRIVACIDADE_URL";
+const POLITICA_PRIVACIDADE_URL = "https://unumpeople.com.br/termos/5558327c-6ee1-4549-8e1b-dc03fdae516a/v1";
 
 export default function CookieBanner() {
   const [showBanner, setShowBanner] = useState(false);
