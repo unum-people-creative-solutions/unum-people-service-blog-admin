@@ -61,9 +61,11 @@ describe('PostsPage', () => {
       title: 'Post de Teste 1',
       slug: 'post-de-teste-1',
       excerpt: 'Resumo 1',
-      status: 'DRAFT',
+      status: 'DRAFT' as const,
       tags: ['go', 'aws'],
       created_at: '2026-06-11T12:00:00Z',
+      author_id: 'author-1',
+      updated_at: '2026-06-11T12:00:00Z',
     },
   ]
 

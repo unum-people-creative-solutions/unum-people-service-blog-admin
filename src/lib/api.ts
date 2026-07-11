@@ -128,3 +128,20 @@ export const serviceAgreementApi = {
   }),
 };
 
+export interface PendingTermItem {
+  type: string;
+  term_id: string;
+  term_name: string;
+  required_version: number;
+  can_accept: boolean;
+  document_url: string;
+}
+
+export interface TermsStatusResponse {
+  pending: PendingTermItem[];
+}
+
+export const termsApi = {
+  getStatus: (): Promise<TermsStatusResponse> => fetchWithAuth('/me/terms/status'),
+};
+
