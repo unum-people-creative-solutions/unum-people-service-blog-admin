@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { X, Cookie } from "lucide-react";
+
+// TODO: substituir pelo content_html_url real após TASK-CONTENT-001 publicar o Term v1
+const POLITICA_PRIVACIDADE_URL = "PLACEHOLDER_POLITICA_PRIVACIDADE_URL";
 
 export default function CookieBanner() {
   const [showBanner, setShowBanner] = useState(false);
@@ -33,7 +35,7 @@ export default function CookieBanner() {
             <p className="text-sm text-gray-500 leading-relaxed">
               Utilizamos cookies para melhorar sua experiência, analisar o tráfego e personalizar conteúdos. 
               Ao clicar em &quot;Aceitar Tudo&quot;, você concorda com o uso de todos os cookies descritos em nossa{" "}
-              <Link href="/privacy" className="text-primary-600 font-semibold hover:underline">Política de Privacidade</Link>.
+              <a href={POLITICA_PRIVACIDADE_URL} target="_blank" rel="noopener noreferrer" className="text-primary-600 font-semibold hover:underline">Política de Privacidade</a>.
             </p>
           </div>
         </div>

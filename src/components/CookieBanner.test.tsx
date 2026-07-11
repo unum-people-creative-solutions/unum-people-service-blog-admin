@@ -14,6 +14,15 @@ describe('CookieBanner Component', () => {
     expect(screen.getByText('Nós valorizamos sua privacidade')).toBeInTheDocument();
   });
 
+  it('deve exibir o link de política de privacidade com as propriedades corretas', () => {
+    render(<CookieBanner />);
+    const link = screen.getByRole('link', { name: /Política de Privacidade/i });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', 'PLACEHOLDER_POLITICA_PRIVACIDADE_URL');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
   it('não deve exibir o banner se o consentimento já existir', () => {
     window.localStorage.setItem('cookie-consent', 'all');
     render(<CookieBanner />);
