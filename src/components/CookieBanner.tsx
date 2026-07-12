@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { X, Cookie } from "lucide-react";
+
+const POLITICA_PRIVACIDADE_URL = "https://unumpeople.com.br/termos/5558327c-6ee1-4549-8e1b-dc03fdae516a/v1";
 
 export default function CookieBanner() {
   const [showBanner, setShowBanner] = useState(false);
@@ -33,7 +34,7 @@ export default function CookieBanner() {
             <p className="text-sm text-gray-500 leading-relaxed">
               Utilizamos cookies para melhorar sua experiência, analisar o tráfego e personalizar conteúdos. 
               Ao clicar em &quot;Aceitar Tudo&quot;, você concorda com o uso de todos os cookies descritos em nossa{" "}
-              <Link href="/privacy" className="text-primary-600 font-semibold hover:underline">Política de Privacidade</Link>.
+              <a href={POLITICA_PRIVACIDADE_URL} target="_blank" rel="noopener noreferrer" className="text-primary-600 font-semibold hover:underline">Política de Privacidade</a>.
             </p>
           </div>
         </div>

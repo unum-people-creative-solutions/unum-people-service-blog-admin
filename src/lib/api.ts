@@ -109,25 +109,6 @@ export const blogApi = {
     return { url: data.upload_url, public_url: data.public_url };
   },
 };
-
-export interface ServiceAgreementStatusResponse {
-  status: 'pendente' | 'aceito';
-  term_name: string;
-  required_version: number;
-  document_url: string;
-  accepted_version?: number;
-  accepted_at?: string;
-  can_accept: boolean;
-}
-
-export const serviceAgreementApi = {
-  getMyStatus: (): Promise<ServiceAgreementStatusResponse> => fetchWithAuth('/me/service-agreement'),
-  accept: (version: number): Promise<void> => fetchWithAuth('/me/service-agreement/accept', {
-    method: 'POST',
-    body: JSON.stringify({ version }),
-  }),
-};
-
 export interface PendingTermItem {
   type: string;
   term_id: string;
