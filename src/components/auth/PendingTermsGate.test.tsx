@@ -1,7 +1,8 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { act, render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import PendingTermsGate from './PendingTermsGate';
 import { termsApi } from '@/lib/api';
+import { useAuthStore } from '@/store/useAuthStore';
 
 vi.mock('@/lib/api', () => ({
   termsApi: {
@@ -14,6 +15,9 @@ const originalLocation = window.location;
 describe('PendingTermsGate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Tenant já resolvido por padrão: cobre o comportamento pós-resolução exercido
+    // pelos demais testes. O teste dedicado de propagação de tenant sobrescreve isso.
+    useAuthStore.setState({ tenantsLoaded: true });
 
     // Mock window.location.href
     // @ts-ignore
@@ -24,6 +28,7 @@ describe('PendingTermsGate', () => {
   });
 
   afterEach(() => {
+    useAuthStore.setState({ tenantsLoaded: false });
     // @ts-ignore
     window.location = originalLocation;
   });
@@ -121,5 +126,24 @@ describe('PendingTermsGate', () => {
     // Deve cair no estado fail-closed que exibe a tela de espera
     await screen.findByText('Aguardando aceite do Termo de Contratação');
     expect(screen.queryByRole('button', { name: /ir para o portal do cliente/i })).not.toBeInTheDocument();
+  });
+
+  it('adia a checagem de termos até o tenant ser resolvido (tenantsLoaded=false) e dispara assim que resolve', async () => {
+    useAuthStore.setState({ tenantsLoaded: false });
+    (termsApi.getStatus as any).mockResolvedValue({ pending: [] });
+
+    render(<PendingTermsGate />);
+
+    // Enquanto o tenant não resolveu, não deve chamar /me/terms/status
+    expect(termsApi.getStatus).not.toHaveBeenCalled();
+
+    // Tenant resolve (mesmo sinal que ServiceGuard usa via useTenants())
+    act(() => {
+      useAuthStore.setState({ tenantsLoaded: true });
+    });
+
+    await waitFor(() => {
+      expect(termsApi.getStatus).toHaveBeenCalledTimes(1);
+    });
   });
 });

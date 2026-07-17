@@ -9,7 +9,7 @@ export default function PendingTermsGate() {
   const [pendingItems, setPendingItems] = useState<PendingTermItem[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [isError, setIsError] = useState(false);
-  const { logout } = useAuthStore();
+  const { logout, tenantsLoaded } = useAuthStore();
 
   const fetchStatus = () => {
     termsApi.getStatus()
@@ -37,8 +37,13 @@ export default function PendingTermsGate() {
   };
 
   useEffect(() => {
+    // Aguarda o tenant ativo resolver (mesmo sinal que ServiceGuard usa via
+    // useTenants()) antes de consultar /me/terms/status — senão a chamada sai
+    // sem X-Tenant-ID e o backend cai no default do claim do JWT, que pode não
+    // ser o tenant onde o usuário é de fato TenantAdmin.
+    if (!tenantsLoaded) return;
     fetchStatus();
-  }, []);
+  }, [tenantsLoaded]);
 
   const hasPending = pendingItems !== null && pendingItems.length > 0;
   const canAcceptAny = pendingItems !== null && pendingItems.some((item) => item.can_accept === true);
