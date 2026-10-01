@@ -40,11 +40,16 @@ vi.mock('@tanstack/react-query', () => {
       }, [])
       return { data, isLoading }
     },
-    useMutation: ({ mutationFn, onSuccess }: any) => {
+    useMutation: ({ mutationFn, onSuccess, onError }: any) => {
       return {
         mutate: async (args: any) => {
-          await mutationFn(args)
-          if (onSuccess) onSuccess()
+          try {
+            await mutationFn(args)
+            if (onSuccess) onSuccess()
+          } catch (err) {
+            if (onError) onError(err)
+            else throw err
+          }
         },
       }
     },
@@ -134,5 +139,63 @@ describe('PostsPage', () => {
     expect(screen.getByTitle('Editar Post')).toBeInTheDocument()
     expect(screen.getByTitle('Excluir Post')).toBeInTheDocument()
     expect(screen.getByTitle('Publicar Post')).toBeInTheDocument()
+  })
+
+  // Achado investigando "posts não são publicáveis": a mutação de publicar/
+  // despublicar/deletar não tinha onError — um 403 do backend (ex:
+  // admin_permission_required, achado em TenantAdmin x isAdmin) falhava em
+  // silêncio, o post continuava do jeito que estava, sem nenhum sinal na
+  // tela de que a ação tinha sido rejeitada.
+  it('mostra o erro na tela quando publicar falha, em vez de falhar em silêncio', async () => {
+    vi.mocked(blogApi.publishPost).mockRejectedValue(new Error('admin_permission_required'))
+
+    render(<PostsPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Post de Teste 1')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByTitle('Publicar Post'))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('admin_permission_required')
+    })
+  })
+
+  it('não deixa erro residual na tela quando publicar funciona', async () => {
+    vi.mocked(blogApi.publishPost).mockResolvedValue({ message: 'Post published successfully' })
+
+    render(<PostsPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Post de Teste 1')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByTitle('Publicar Post'))
+
+    await waitFor(() => {
+      expect(blogApi.publishPost).toHaveBeenCalledWith('post-1')
+    })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('mostra o erro na tela quando despublicar falha', async () => {
+    vi.mocked(blogApi.listPosts).mockResolvedValue({
+      posts: [{ ...mockPosts[0], status: 'PUBLISHED' as const }],
+      last_key: '',
+    })
+    vi.mocked(blogApi.unpublishPost).mockRejectedValue(new Error('admin_permission_required'))
+
+    render(<PostsPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Post de Teste 1')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByTitle('Mudar para Rascunho'))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('admin_permission_required')
+    })
   })
 })
