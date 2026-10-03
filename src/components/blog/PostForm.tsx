@@ -138,7 +138,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
 
     try {
       // 1. Obter URL assinada
-      const { url, public_url } = await blogApi.getUploadURL(file.name, file.type);
+      const { url, public_url } = await blogApi.getUploadURL(file.name, file.type, file.size);
       setUploadProgress(30);
 
       // 2. Fazer PUT direto no S3 com XMLHttp para acompanhar progresso
