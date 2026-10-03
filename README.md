@@ -11,7 +11,7 @@ Para obter o contexto arquitetural completo e consultar o *Single Source of Trut
 Painel de administração (Next.js App Router) para gestão do blog institucional Unum People — CRUD de posts, publicação/despublicação e mídia.
 
 ## 1. Funcionalidades
-- **Gestão de Posts:** criação, edição, exclusão, publicação/despublicação (`blogApi`, `src/lib/api.ts`), com upload de mídia via URL assinada.
+- **Gestão de Posts:** criação, edição, exclusão, publicação/despublicação (`blogApi`, `src/lib/api.ts`), com upload de mídia via URL assinada. O `PUT` grava o original; `public_url` já é o WebP em `optimized/`. Publicar espera essa URL por até 15 s.
 - **Multi-tenant:** seletor de tenant (`TenantSwitcher`), com acesso condicionado ao serviço `blog` contratado pelo tenant (`ServiceGuard` — bloqueia em `/403` quando o tenant não tem o serviço ou não tem nenhum tenant vinculado).
 - **Termos de Uso e Políticas Pendentes:** integrado via `PendingTermsGate`, que consulta `GET /me/terms/status` (via `termsApi.getStatus()`, com propagação automática de `X-Tenant-ID` por `fetchWithAuth`). Se houver alguma pendência acionável de termos ou políticas, o usuário é redirecionado para o Portal do Cliente (`customer.unumpeople.com.br`) para aceitação.
 
