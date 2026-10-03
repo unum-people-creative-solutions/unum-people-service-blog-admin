@@ -28,6 +28,7 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { blogApi, Post } from '@/lib/api';
+import { isSessionImageUrl, registerSessionImageUrl, waitForSessionImages } from '@/lib/sessionImageUrls';
 
 // Helper local de Slugify
 function slugify(text: string): string {
@@ -138,7 +139,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
 
     try {
       // 1. Obter URL assinada
-      const { url, public_url } = await blogApi.getUploadURL(file.name, file.type);
+      const { url, public_url } = await blogApi.getUploadURL(file.name, file.type, file.size);
       setUploadProgress(30);
 
       // 2. Fazer PUT direto no S3 com XMLHttp para acompanhar progresso
@@ -155,7 +156,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
 
       xhr.onload = () => {
         if (xhr.status === 200) {
-          // Extrair a URL limpa do bucket S3 removendo query params da URL assinada
+          registerSessionImageUrl(public_url);
           setValue('cover_image_url', public_url, { shouldValidate: true });
           setUploading(false);
         } else {
@@ -199,11 +200,22 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
     }, 50);
   };
 
-  const handleFormSubmit = (data: PostFormData) => {
-    onSubmit({
+  const submitPost = (data: PostFormData, status?: 'PUBLISHED') => {
+    const payload = {
       ...data,
       tags,
-    });
+      ...(status ? { status } : {}),
+    };
+    const cover = payload.cover_image_url;
+    if (payload.status === 'PUBLISHED' && isSessionImageUrl(cover)) {
+      void waitForSessionImages([cover]).then(() => onSubmit(payload));
+      return;
+    }
+    onSubmit(payload);
+  };
+
+  const handleFormSubmit = (data: PostFormData) => {
+    submitPost(data);
   };
 
   return (
@@ -526,7 +538,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
             {isAdmin && (
               <button
                 type="button"
-                onClick={handleSubmit((data) => onSubmit({ ...data, tags, status: 'PUBLISHED' }))}
+                onClick={handleSubmit((data) => submitPost(data, 'PUBLISHED'))}
                 disabled={isLoading}
                 className="flex items-center justify-center gap-2 px-5 py-3 bg-slate-800 hover:bg-slate-700 active:opacity-90 disabled:opacity-50 text-white rounded-xl transition text-sm font-bold border border-slate-700/50"
               >
