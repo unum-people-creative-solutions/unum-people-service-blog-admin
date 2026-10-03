@@ -28,7 +28,7 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { blogApi, Post } from '@/lib/api';
-import { registerSessionImageUrl } from '@/lib/sessionImageUrls';
+import { isSessionImageUrl, registerSessionImageUrl, waitForSessionImages } from '@/lib/sessionImageUrls';
 
 // Helper local de Slugify
 function slugify(text: string): string {
@@ -200,11 +200,22 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
     }, 50);
   };
 
-  const handleFormSubmit = (data: PostFormData) => {
-    onSubmit({
+  const submitPost = (data: PostFormData, status?: 'PUBLISHED') => {
+    const payload = {
       ...data,
       tags,
-    });
+      ...(status ? { status } : {}),
+    };
+    const cover = payload.cover_image_url;
+    if (payload.status === 'PUBLISHED' && isSessionImageUrl(cover)) {
+      void waitForSessionImages([cover]).then(() => onSubmit(payload));
+      return;
+    }
+    onSubmit(payload);
+  };
+
+  const handleFormSubmit = (data: PostFormData) => {
+    submitPost(data);
   };
 
   return (
@@ -527,7 +538,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
             {isAdmin && (
               <button
                 type="button"
-                onClick={handleSubmit((data) => onSubmit({ ...data, tags, status: 'PUBLISHED' }))}
+                onClick={handleSubmit((data) => submitPost(data, 'PUBLISHED'))}
                 disabled={isLoading}
                 className="flex items-center justify-center gap-2 px-5 py-3 bg-slate-800 hover:bg-slate-700 active:opacity-90 disabled:opacity-50 text-white rounded-xl transition text-sm font-bold border border-slate-700/50"
               >

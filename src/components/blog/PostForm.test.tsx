@@ -4,7 +4,8 @@ import '@testing-library/jest-dom'
 import React from 'react'
 
 import PostForm from './PostForm'
-import { clearSessionImageUrls, isSessionImageUrl } from '@/lib/sessionImageUrls'
+import type { Post } from '@/lib/api'
+import { clearSessionImageUrls, isSessionImageUrl, registerSessionImageUrl } from '@/lib/sessionImageUrls'
 import { useAuthStore } from '@/store/useAuthStore'
 
 const mockOnSubmit = vi.fn()
@@ -205,6 +206,116 @@ describe('PostForm', () => {
       })
       expect(isSessionImageUrl(PUBLIC_URL)).toBe(true)
       expect(screen.getByRole('img', { name: 'Capa do post' })).toHaveAttribute('src', PUBLIC_URL)
+    })
+  })
+
+  describe('espera da capa ao publicar', () => {
+    const COVER = 'https://cdn.example/optimized/cover.webp'
+    const fetchMock = vi.fn()
+
+    const draftWithCover = (): Post => ({
+      id: 'post-1',
+      title: 'Novo Título Legal',
+      slug: 'novo-titulo-legal',
+      excerpt: 'Este é um excelente resumo com mais de dez caracteres.',
+      content_md: 'Este é o conteúdo do post que precisa ter mais de vinte caracteres.',
+      cover_image_url: COVER,
+      status: 'DRAFT',
+      tags: [],
+      author_id: 'author-1',
+      created_at: '2026-06-11T12:00:00Z',
+      updated_at: '2026-06-11T12:00:00Z',
+    })
+
+    beforeEach(() => {
+      fetchMock.mockReset()
+      clearSessionImageUrls()
+      vi.stubGlobal('fetch', fetchMock)
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
+      clearSessionImageUrls()
+    })
+
+    async function abrirFormulario() {
+      render(<PostForm onSubmit={mockOnSubmit} isLoading={false} initialData={draftWithCover()} />)
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0)
+      })
+    }
+
+    it('Salvar e Publicar com a capa desta aba espera 15s se o HEAD nunca for 200', async () => {
+      fetchMock.mockResolvedValue(new Response(null, { status: 404 }))
+      registerSessionImageUrl(COVER)
+
+      await abrirFormulario()
+      fireEvent.click(screen.getByRole('button', { name: /salvar e publicar/i }))
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0)
+      })
+      expect(fetchMock).toHaveBeenCalledWith(COVER, { method: 'HEAD' })
+      expect(mockOnSubmit).not.toHaveBeenCalled()
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(14999)
+      })
+      expect(mockOnSubmit).not.toHaveBeenCalled()
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1)
+      })
+      expect(mockOnSubmit).toHaveBeenCalledTimes(1)
+      expect(mockOnSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'PUBLISHED',
+          cover_image_url: COVER,
+        }),
+      )
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15000)
+      })
+      expect(mockOnSubmit).toHaveBeenCalledTimes(1)
+    })
+
+    it('HEAD 200 publica sem esgotar 15s', async () => {
+      fetchMock.mockResolvedValue(new Response(null, { status: 200 }))
+      registerSessionImageUrl(COVER)
+
+      await abrirFormulario()
+      fireEvent.click(screen.getByRole('button', { name: /salvar e publicar/i }))
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0)
+      })
+      expect(fetchMock).toHaveBeenCalledWith(COVER, { method: 'HEAD' })
+      expect(mockOnSubmit).toHaveBeenCalledTimes(1)
+      expect(mockOnSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'PUBLISHED', cover_image_url: COVER }),
+      )
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15000)
+      })
+      expect(mockOnSubmit).toHaveBeenCalledTimes(1)
+    })
+
+    it('Salvar Post não espera e não faz HEAD mesmo com a capa no conjunto', async () => {
+      registerSessionImageUrl(COVER)
+
+      await abrirFormulario()
+      fireEvent.click(screen.getByRole('button', { name: /salvar post/i }))
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0)
+      })
+      expect(mockOnSubmit).toHaveBeenCalledTimes(1)
+      expect(mockOnSubmit.mock.calls[0]?.[0]).not.toEqual(expect.objectContaining({ status: 'PUBLISHED' }))
+      expect(fetchMock).not.toHaveBeenCalled()
     })
   })
 })
