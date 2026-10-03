@@ -32,6 +32,11 @@ export default function PostsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'DRAFT' | 'PUBLISHED'>('ALL');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  // Erro de deletar/publicar/despublicar — sem isto a mutação falhava (ex:
+  // 403 "admin_permission_required") sem nenhum sinal na tela; o post só
+  // continuava como estava, e parecia que a ação simplesmente não fazia
+  // nada (achado investigando "posts não são publicáveis").
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Debounce do campo de busca
   useEffect(() => {
@@ -57,6 +62,10 @@ export default function PostsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
       setDeleteConfirmId(null);
+      setActionError(null);
+    },
+    onError: (err: Error) => {
+      setActionError(err.message || 'Não foi possível excluir o post.');
     },
   });
 
@@ -65,6 +74,10 @@ export default function PostsPage() {
     mutationFn: (id: string) => blogApi.publishPost(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
+      setActionError(null);
+    },
+    onError: (err: Error) => {
+      setActionError(err.message || 'Não foi possível publicar o post.');
     },
   });
 
@@ -73,6 +86,10 @@ export default function PostsPage() {
     mutationFn: (id: string) => blogApi.unpublishPost(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
+      setActionError(null);
+    },
+    onError: (err: Error) => {
+      setActionError(err.message || 'Não foi possível despublicar o post.');
     },
   });
 
@@ -211,6 +228,22 @@ export default function PostsPage() {
                 </button>
               </div>
             </div>
+
+            {actionError && (
+              <div
+                role="alert"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg border border-red-800/40 bg-red-950/50 text-red-400 text-sm"
+              >
+                <AlertTriangle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                <p className="flex-1">{actionError}</p>
+                <button
+                  onClick={() => setActionError(null)}
+                  className="text-red-400/70 hover:text-red-300 text-xs font-semibold"
+                >
+                  Fechar
+                </button>
+              </div>
+            )}
 
             {/* Tabela de Posts */}
             {isLoading ? (
