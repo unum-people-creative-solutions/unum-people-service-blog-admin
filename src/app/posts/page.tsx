@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { blogApi, Post } from '@/lib/api';
+import { isSessionImageUrl, waitForSessionImages } from '@/lib/sessionImageUrls';
 import TenantSwitcher from '@/components/TenantSwitcher';
 import { useAuthStore } from '@/store/useAuthStore';
 import { logoutFromHostedUI } from '@/lib/pkce';
@@ -106,9 +107,16 @@ export default function PostsPage() {
   const togglePublish = (post: Post) => {
     if (post.status === 'PUBLISHED') {
       unpublishMutation.mutate(post.id);
-    } else {
-      publishMutation.mutate(post.id);
+      return;
     }
+    const cover = post.cover_image_url;
+    if (!isSessionImageUrl(cover)) {
+      publishMutation.mutate(post.id);
+      return;
+    }
+    void waitForSessionImages([cover]).then(() => {
+      publishMutation.mutate(post.id);
+    });
   };
 
   const newPostAction = (

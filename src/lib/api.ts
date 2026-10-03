@@ -101,10 +101,10 @@ export const blogApi = {
     });
   },
 
-  getUploadURL: async (filename: string, contentType: string): Promise<{ url: string, public_url: string }> => {
+  getUploadURL: async (filename: string, contentType: string, size: number): Promise<{ url: string, public_url: string }> => {
     const data = await fetchWithAuth('/admin/blog/media/upload-url', {
       method: 'POST',
-      body: JSON.stringify({ filename, content_type: contentType }),
+      body: JSON.stringify({ filename, content_type: contentType, size }),
     });
     return { url: data.upload_url, public_url: data.public_url };
   },
