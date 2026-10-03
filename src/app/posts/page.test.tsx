@@ -1,11 +1,15 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import '@testing-library/jest-dom'
 import React from 'react'
 
 import PostsPage from './page'
 import { blogApi } from '@/lib/api'
+import { PRAZO_MS, clearSessionImageUrls, registerSessionImageUrl } from '@/lib/sessionImageUrls'
 import { useAuthStore } from '@/store/useAuthStore'
+
+const COVER = 'https://cdn.example/optimized/cover.webp'
+const OTHER = 'https://cdn.example/optimized/other.webp'
 
 vi.mock('@/lib/api', () => ({
   blogApi: {
@@ -71,6 +75,7 @@ describe('PostsPage', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    clearSessionImageUrls()
     vi.mocked(blogApi.listPosts).mockResolvedValue({
       posts: mockPosts,
       last_key: '',
@@ -79,6 +84,12 @@ describe('PostsPage', () => {
     useAuthStore.setState({
       isAdmin: true,
     })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+    clearSessionImageUrls()
   })
 
   it('renders table, search filter, and TenantSwitcher', async () => {
@@ -134,5 +145,160 @@ describe('PostsPage', () => {
     expect(screen.getByTitle('Editar Post')).toBeInTheDocument()
     expect(screen.getByTitle('Excluir Post')).toBeInTheDocument()
     expect(screen.getByTitle('Publicar Post')).toBeInTheDocument()
+  })
+
+  async function mostrarPost() {
+    render(<PostsPage />)
+    expect(await screen.findByRole('button', { name: 'Publicar Post' })).toBeInTheDocument()
+  }
+
+  async function mostrarPostComRelogioFalso() {
+    vi.useFakeTimers()
+    render(<PostsPage />)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(screen.getByRole('button', { name: 'Publicar Post' })).toBeInTheDocument()
+  }
+
+  it('publica na hora, sem HEAD, quando a capa não está no conjunto da aba', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    registerSessionImageUrl(OTHER)
+    vi.mocked(blogApi.listPosts).mockResolvedValue({
+      posts: [{ ...mockPosts[0], cover_image_url: COVER }],
+      last_key: '',
+    })
+    vi.mocked(blogApi.publishPost).mockResolvedValue({ message: 'ok' })
+
+    await mostrarPost()
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar Post' }))
+
+    await waitFor(() => {
+      expect(blogApi.publishPost).toHaveBeenCalledTimes(1)
+      expect(blogApi.publishPost).toHaveBeenCalledWith('post-1')
+    })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('limpar o conjunto da aba volta a publicar na hora', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    registerSessionImageUrl(COVER)
+    clearSessionImageUrls()
+    vi.mocked(blogApi.listPosts).mockResolvedValue({
+      posts: [{ ...mockPosts[0], cover_image_url: COVER }],
+      last_key: '',
+    })
+    vi.mocked(blogApi.publishPost).mockResolvedValue({ message: 'ok' })
+
+    await mostrarPost()
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar Post' }))
+
+    await waitFor(() => {
+      expect(blogApi.publishPost).toHaveBeenCalledTimes(1)
+    })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('despublicar não espera e não faz HEAD mesmo com a capa no conjunto', async () => {
+    const fetchMock = vi.fn(() => new Promise(() => {}))
+    vi.stubGlobal('fetch', fetchMock)
+    registerSessionImageUrl(COVER)
+    vi.mocked(blogApi.listPosts).mockResolvedValue({
+      posts: [{ ...mockPosts[0], status: 'PUBLISHED' as const, cover_image_url: COVER }],
+      last_key: '',
+    })
+    vi.mocked(blogApi.unpublishPost).mockResolvedValue({ message: 'ok' })
+
+    render(<PostsPage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Mudar para Rascunho' }))
+
+    await waitFor(() => {
+      expect(blogApi.unpublishPost).toHaveBeenCalledTimes(1)
+      expect(blogApi.unpublishPost).toHaveBeenCalledWith('post-1')
+    })
+    expect(blogApi.publishPost).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('com a capa desta aba, HEAD 200 publica sem esgotar 15s', async () => {
+    expect(PRAZO_MS).toBe(15000)
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    registerSessionImageUrl(COVER)
+    registerSessionImageUrl(OTHER)
+    vi.mocked(blogApi.listPosts).mockResolvedValue({
+      posts: [{ ...mockPosts[0], cover_image_url: COVER }],
+      last_key: '',
+    })
+    vi.mocked(blogApi.publishPost).mockResolvedValue({ message: 'ok' })
+
+    await mostrarPostComRelogioFalso()
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar Post' }))
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0)
+    })
+
+    expect(blogApi.publishPost).toHaveBeenCalledTimes(1)
+    expect(blogApi.publishPost).toHaveBeenCalledWith('post-1')
+    expect(fetchMock).toHaveBeenCalledWith(COVER, { method: 'HEAD' })
+    expect(fetchMock.mock.calls.every(([url]) => url === COVER)).toBe(true)
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15000)
+    })
+    expect(blogApi.publishPost).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    ['pendente', () => new Promise(() => {})],
+    ['rejeitado', () => Promise.reject(new TypeError('Failed to fetch'))],
+  ])('HEAD %s publica exatamente uma vez aos 15s', async (_caso, head) => {
+    const fetchMock = vi.fn(head)
+    vi.stubGlobal('fetch', fetchMock)
+    registerSessionImageUrl(COVER)
+    vi.mocked(blogApi.listPosts).mockResolvedValue({
+      posts: [{ ...mockPosts[0], cover_image_url: COVER }],
+      last_key: '',
+    })
+    vi.mocked(blogApi.publishPost).mockResolvedValue({ message: 'ok' })
+
+    await mostrarPostComRelogioFalso()
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar Post' }))
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(fetchMock).toHaveBeenCalledWith(COVER, { method: 'HEAD' })
+    expect(blogApi.publishPost).not.toHaveBeenCalled()
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(999)
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1)
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(blogApi.publishPost).not.toHaveBeenCalled()
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(13999)
+    })
+    expect(blogApi.publishPost).not.toHaveBeenCalled()
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1)
+    })
+    expect(blogApi.publishPost).toHaveBeenCalledTimes(1)
+    expect(blogApi.publishPost).toHaveBeenCalledWith('post-1')
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15000)
+    })
+    expect(blogApi.publishPost).toHaveBeenCalledTimes(1)
   })
 })

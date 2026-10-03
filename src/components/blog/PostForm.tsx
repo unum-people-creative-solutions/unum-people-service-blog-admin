@@ -28,6 +28,7 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { blogApi, Post } from '@/lib/api';
+import { registerSessionImageUrl } from '@/lib/sessionImageUrls';
 
 // Helper local de Slugify
 function slugify(text: string): string {
@@ -155,7 +156,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
 
       xhr.onload = () => {
         if (xhr.status === 200) {
-          // Extrair a URL limpa do bucket S3 removendo query params da URL assinada
+          registerSessionImageUrl(public_url);
           setValue('cover_image_url', public_url, { shouldValidate: true });
           setUploading(false);
         } else {

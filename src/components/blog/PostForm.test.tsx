@@ -1,9 +1,10 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import '@testing-library/jest-dom'
 import React from 'react'
 
 import PostForm from './PostForm'
+import { clearSessionImageUrls, isSessionImageUrl } from '@/lib/sessionImageUrls'
 import { useAuthStore } from '@/store/useAuthStore'
 
 const mockOnSubmit = vi.fn()
@@ -123,6 +124,7 @@ describe('PostForm', () => {
 
     beforeEach(() => {
       fetchMock.mockReset()
+      clearSessionImageUrls()
       vi.stubGlobal('fetch', fetchMock)
     })
 
@@ -175,6 +177,34 @@ describe('PostForm', () => {
       expect(screen.queryByRole('img', { name: 'Capa do post' })).not.toBeInTheDocument()
       expect(screen.getByRole('button', { name: /fazer upload de imagem/i })).toBeInTheDocument()
       expect(xhrs).toHaveLength(0)
+    })
+
+    it('registra a public_url no conjunto da aba só depois do PUT 200', async () => {
+      fetchMock.mockResolvedValue(
+        presignResponse(200, { upload_url: UPLOAD_URL, public_url: PUBLIC_URL }),
+      )
+      const xhrs = installXHR()
+
+      render(<PostForm onSubmit={mockOnSubmit} isLoading={false} />)
+      await chooseCover()
+
+      await waitFor(() => expect(xhrs).toHaveLength(1))
+      expect(isSessionImageUrl(PUBLIC_URL)).toBe(false)
+
+      act(() => {
+        xhrs[0]!.status = 500
+        xhrs[0]!.onload?.()
+      })
+      expect(isSessionImageUrl(PUBLIC_URL)).toBe(false)
+      expect(screen.queryByRole('img', { name: 'Capa do post' })).not.toBeInTheDocument()
+      expect(await screen.findByText('Erro ao enviar imagem ao S3')).toBeInTheDocument()
+
+      act(() => {
+        xhrs[0]!.status = 200
+        xhrs[0]!.onload?.()
+      })
+      expect(isSessionImageUrl(PUBLIC_URL)).toBe(true)
+      expect(screen.getByRole('img', { name: 'Capa do post' })).toHaveAttribute('src', PUBLIC_URL)
     })
   })
 })
