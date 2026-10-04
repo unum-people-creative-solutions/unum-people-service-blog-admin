@@ -16,6 +16,34 @@ export function clearSessionImageUrls(): void {
   urls.clear()
 }
 
+/** HEAD a cada 1s até 200. Devolve o cancelamento. Não tem prazo: a prévia local cobre a espera. */
+export function watchUntilReady(url: string, onReady: () => void): () => void {
+  let cancelado = false
+  let timer: ReturnType<typeof setTimeout> | undefined
+
+  const poll = () => {
+    if (cancelado) return
+    fetch(url, { method: 'HEAD' })
+      .then((response) => {
+        if (cancelado) return
+        if (response.status === 200) {
+          onReady()
+          return
+        }
+        timer = setTimeout(poll, INTERVALO_MS)
+      })
+      .catch(() => {
+        if (!cancelado) timer = setTimeout(poll, INTERVALO_MS)
+      })
+  }
+
+  poll()
+  return () => {
+    cancelado = true
+    if (timer !== undefined) clearTimeout(timer)
+  }
+}
+
 /**
  * HEAD imediato e depois a cada 1s, em paralelo. 200 em todas encerra na hora.
  * Sem 200 — inclusive rede — resolve uma vez ao fim do prazo.
