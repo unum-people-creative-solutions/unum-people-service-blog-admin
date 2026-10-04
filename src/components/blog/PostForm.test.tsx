@@ -133,10 +133,13 @@ describe('PostForm', () => {
       vi.unstubAllGlobals()
     })
 
-    it('envia size igual a file.size e só grava a public_url depois do PUT 200', async () => {
-      fetchMock.mockResolvedValue(
-        presignResponse(200, { upload_url: UPLOAD_URL, public_url: PUBLIC_URL }),
-      )
+    it('envia size igual a file.size e mostra o arquivo local até a CDN responder', async () => {
+      vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:capa')
+      vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+      fetchMock.mockImplementation((_url: string, init?: RequestInit) => {
+        if (init?.method === 'HEAD') return Promise.resolve(new Response(null, { status: 404 }))
+        return Promise.resolve(presignResponse(200, { upload_url: UPLOAD_URL, public_url: PUBLIC_URL }))
+      })
       const xhrs = installXHR()
       const file = imageFile()
 
@@ -161,7 +164,38 @@ describe('PostForm', () => {
       xhrs[0]!.onload?.()
 
       const capa = await screen.findByRole('img', { name: 'Capa do post' })
-      expect(capa).toHaveAttribute('src', PUBLIC_URL)
+      expect(capa).toHaveAttribute('src', 'blob:capa')
+      expect(isSessionImageUrl(PUBLIC_URL)).toBe(true)
+    })
+
+    it('troca a prévia local pela CDN quando o HEAD responde 200', async () => {
+      vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:capa')
+      vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+      let head: (status: number) => void = () => {}
+      fetchMock.mockImplementation((_url: string, init?: RequestInit) => {
+        if (init?.method === 'HEAD') {
+          return new Promise<Response>((resolve) => {
+            head = (status) => resolve(new Response(null, { status }))
+          })
+        }
+        return Promise.resolve(presignResponse(200, { upload_url: UPLOAD_URL, public_url: PUBLIC_URL }))
+      })
+      const xhrs = installXHR()
+
+      render(<PostForm onSubmit={mockOnSubmit} isLoading={false} />)
+      await chooseCover()
+      await waitFor(() => expect(xhrs).toHaveLength(1))
+      act(() => {
+        xhrs[0]!.status = 200
+        xhrs[0]!.onload?.()
+      })
+
+      expect(await screen.findByRole('img', { name: 'Capa do post' })).toHaveAttribute('src', 'blob:capa')
+      await act(async () => {
+        head(200)
+        await Promise.resolve()
+      })
+      expect(screen.getByRole('img', { name: 'Capa do post' })).toHaveAttribute('src', PUBLIC_URL)
     })
 
     it.each([
@@ -181,9 +215,12 @@ describe('PostForm', () => {
     })
 
     it('registra a public_url no conjunto da aba só depois do PUT 200', async () => {
-      fetchMock.mockResolvedValue(
-        presignResponse(200, { upload_url: UPLOAD_URL, public_url: PUBLIC_URL }),
-      )
+      vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:capa')
+      vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+      fetchMock.mockImplementation((_url: string, init?: RequestInit) => {
+        if (init?.method === 'HEAD') return Promise.resolve(new Response(null, { status: 404 }))
+        return Promise.resolve(presignResponse(200, { upload_url: UPLOAD_URL, public_url: PUBLIC_URL }))
+      })
       const xhrs = installXHR()
 
       render(<PostForm onSubmit={mockOnSubmit} isLoading={false} />)
@@ -205,7 +242,7 @@ describe('PostForm', () => {
         xhrs[0]!.onload?.()
       })
       expect(isSessionImageUrl(PUBLIC_URL)).toBe(true)
-      expect(screen.getByRole('img', { name: 'Capa do post' })).toHaveAttribute('src', PUBLIC_URL)
+      expect(screen.getByRole('img', { name: 'Capa do post' })).toHaveAttribute('src', 'blob:capa')
     })
   })
 

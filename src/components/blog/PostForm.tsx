@@ -28,7 +28,8 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { blogApi, Post } from '@/lib/api';
-import { isSessionImageUrl, registerSessionImageUrl, waitForSessionImages } from '@/lib/sessionImageUrls';
+import { isSessionImageUrl, registerSessionImageUrl, waitForSessionImages, watchUntilReady } from '@/lib/sessionImageUrls';
+import { CapaEmPreparacao } from './CapaEmPreparacao';
 
 // Helper local de Slugify
 function slugify(text: string): string {
@@ -99,6 +100,16 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
   const watchTitle = watch('title');
   const watchContent = watch('content_md');
   const watchCoverImage = watch('cover_image_url');
+  const [previewLocal, setPreviewLocal] = useState<string | null>(null);
+  const previewRef = useRef<string | null>(null);
+  const cancelarVigia = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      cancelarVigia.current?.();
+      if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+    };
+  }, []);
 
   // Autogeracao de Slug baseada no titulo
   useEffect(() => {
@@ -157,6 +168,18 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
       xhr.onload = () => {
         if (xhr.status === 200) {
           registerSessionImageUrl(public_url);
+          if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+          const local = URL.createObjectURL(file);
+          previewRef.current = local;
+          setPreviewLocal(local);
+          cancelarVigia.current?.();
+          cancelarVigia.current = watchUntilReady(public_url, () => {
+            if (previewRef.current !== local) return;
+            URL.revokeObjectURL(local);
+            previewRef.current = null;
+            cancelarVigia.current = null;
+            setPreviewLocal(null);
+          });
           setValue('cover_image_url', public_url, { shouldValidate: true });
           setUploading(false);
         } else {
@@ -381,13 +404,17 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                   className="hidden"
                 />
 
-                {watchCoverImage ? (
+                {previewLocal || watchCoverImage ? (
                   <div className="relative aspect-video rounded-lg overflow-hidden border border-slate-800 bg-slate-950 group">
-                    <img
-                      src={watchCoverImage}
-                      alt="Capa do post"
-                      className="w-full h-full object-cover"
-                    />
+                    {previewLocal ? (
+                      <img
+                        src={previewLocal}
+                        alt="Capa do post"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <CapaEmPreparacao src={watchCoverImage!} className="w-full h-full object-cover" />
+                    )}
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition gap-2">
                       <button
                         type="button"
@@ -398,7 +425,12 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                       </button>
                       <button
                         type="button"
-                        onClick={() => setValue('cover_image_url', '')}
+                        onClick={() => {
+                          if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+                          previewRef.current = null;
+                          setPreviewLocal(null);
+                          setValue('cover_image_url', '');
+                        }}
                         className="p-1.5 bg-red-950/80 border border-red-800/40 text-red-400 rounded-lg hover:bg-red-950 transition"
                       >
                         <X className="w-4 h-4" />
