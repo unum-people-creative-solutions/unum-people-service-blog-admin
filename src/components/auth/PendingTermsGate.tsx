@@ -1,17 +1,38 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { jwtDecode } from 'jwt-decode';
 import { termsApi, PendingTermItem } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { logoutFromHostedUI } from '@/lib/pkce';
+
+// Tenant que a API usa quando a chamada sai sem X-Tenant-ID: o claim do token.
+function getTokenTenantId(token: string | null): string | null {
+  if (!token) return null;
+  try {
+    const tenantId = jwtDecode<Record<string, unknown>>(token)['custom:tenant_id'];
+    return typeof tenantId === 'string' && tenantId ? tenantId : null;
+  } catch {
+    return null;
+  }
+}
 
 export default function PendingTermsGate() {
   const [pendingItems, setPendingItems] = useState<PendingTermItem[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [isError, setIsError] = useState(false);
-  const { logout, tenantsLoaded } = useAuthStore();
+  const { logout, tenantsLoaded, user } = useAuthStore();
+
+  // Tenant que a chamada de status usou (fetchWithAuth envia o activeTenantId do
+  // store em X-Tenant-ID): é o dono do termo pendente e o que o Portal do Cliente
+  // precisa ativar para o aceite cair no lugar certo.
+  const statusTenantIdRef = useRef<string | null>(null);
 
   const fetchStatus = () => {
+    // Sem tenant ativo (vários tenants e nenhum escolhido, ou nenhum tenant) a
+    // chamada sai sem X-Tenant-ID e a API resolve pelo token.
+    const { activeTenantId, token } = useAuthStore.getState();
+    statusTenantIdRef.current = activeTenantId ?? getTokenTenantId(token);
     termsApi.getStatus()
       .then((res) => {
         setPendingItems(res.pending);
@@ -47,6 +68,11 @@ export default function PendingTermsGate() {
 
   const hasPending = pendingItems !== null && pendingItems.length > 0;
   const canAcceptAny = pendingItems !== null && pendingItems.some((item) => item.can_accept === true);
+  // GlobalAdmin não é membro das empresas dos clientes e não pode aceitar o
+  // termo delas (can_accept=false): em vez de ficar preso, vê um aviso. A falha
+  // da consulta continua bloqueando (fail-closed).
+  const showGlobalAdminNotice =
+    hasPending && !canAcceptAny && !isError && (user?.groups.includes('GlobalAdmin') ?? false);
 
   // Polling a cada 15s quando temos pendências mas nenhuma acionável (can_accept=false)
   const isWaiting = hasPending && !canAcceptAny;
@@ -71,7 +97,10 @@ export default function PendingTermsGate() {
   const handleGoToCustomers = () => {
     const customersUrl = process.env.NEXT_PUBLIC_CUSTOMERS_URL || 'https://customer.unumpeople.com.br';
     const returnTo = encodeURIComponent(window.location.href);
-    window.location.href = `${customersUrl}?return_to=${returnTo}`;
+    const tenantParam = statusTenantIdRef.current
+      ? `&tenant_id=${encodeURIComponent(statusTenantIdRef.current)}`
+      : '';
+    window.location.href = `${customersUrl}?return_to=${returnTo}${tenantParam}`;
   };
 
   const handleBackToLogin = () => {
@@ -94,6 +123,17 @@ export default function PendingTermsGate() {
             Ir para o Portal do Cliente
           </button>
         </div>
+      </div>
+    );
+  }
+
+  if (showGlobalAdminNotice) {
+    return (
+      <div
+        role="status"
+        className="fixed bottom-4 right-4 z-[200] max-w-sm rounded-xl border border-amber-500/40 bg-slate-900 p-4 text-sm text-amber-200 shadow-lg"
+      >
+        O termo de contratação desta empresa está pendente. Só um administrador da empresa pode aceitá-lo.
       </div>
     );
   }
