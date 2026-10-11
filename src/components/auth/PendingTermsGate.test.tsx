@@ -12,6 +12,28 @@ vi.mock('@/lib/api', () => ({
 
 const originalLocation = window.location;
 
+const fakeJwt = (claims: Record<string, unknown>) => {
+  const b64 = (o: unknown) =>
+    btoa(JSON.stringify(o)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return `${b64({ alg: 'none' })}.${b64(claims)}.sig`;
+};
+
+const pendingContract = (canAccept: boolean) => ({
+  pending: [
+    {
+      type: 'contratacao_servico',
+      term_id: '3',
+      term_name: 'Contrato de Serviço',
+      required_version: 1,
+      can_accept: canAccept,
+      document_url: 'https://cdn.example.com/terms/v3.html',
+    },
+  ],
+});
+
+const GLOBAL_ADMIN_NOTICE =
+  'O termo de contratação desta empresa está pendente. Só um administrador da empresa pode aceitá-lo.';
+
 describe('PendingTermsGate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -144,6 +166,113 @@ describe('PendingTermsGate', () => {
 
     await waitFor(() => {
       expect(termsApi.getStatus).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('tenant do termo pendente e GlobalAdmin (RF-01, RF-08, RF-09)', () => {
+    const getStatus = vi.mocked(termsApi.getStatus);
+
+    afterEach(() => {
+      useAuthStore.setState({ activeTenantId: null, user: null, token: null });
+    });
+
+    it('CA-01: redireciona com tenant_id e return_to, ambos codificados', async () => {
+      useAuthStore.setState({ activeTenantId: 't 2&x' });
+      window.location.href = 'http://localhost/posts?a=1&b=2#x y';
+      getStatus.mockResolvedValue(pendingContract(true));
+
+      render(<PendingTermsGate />);
+
+      fireEvent.click(await screen.findByRole('button', { name: /ir para o portal do cliente/i }));
+
+      // Valor codificado na URL: espaço e "&" não podem vazar para a query.
+      expect(window.location.href).toContain('&tenant_id=t%202%26x');
+      const target = new URL(window.location.href);
+      expect(target.searchParams.get('tenant_id')).toBe('t 2&x');
+      expect(target.searchParams.get('return_to')).toBe('http://localhost/posts?a=1&b=2#x y');
+      // O "&" interno do return_to não pode virar um 3o parâmetro.
+      expect(Array.from(target.searchParams.keys()).sort()).toEqual(['return_to', 'tenant_id']);
+    });
+
+    it('CA-09: sem tenant ativo, o redirecionamento leva o tenant do token (custom:tenant_id)', async () => {
+      useAuthStore.setState({
+        activeTenantId: null,
+        token: fakeJwt({ 'custom:tenant_id': 't-3' }),
+      });
+      getStatus.mockResolvedValue(pendingContract(true));
+
+      render(<PendingTermsGate />);
+
+      fireEvent.click(await screen.findByRole('button', { name: /ir para o portal do cliente/i }));
+
+      expect(new URL(window.location.href).searchParams.get('tenant_id')).toBe('t-3');
+    });
+
+    it('tenant ativo tem prioridade sobre o tenant do token', async () => {
+      useAuthStore.setState({
+        activeTenantId: 't-2',
+        token: fakeJwt({ 'custom:tenant_id': 't-3' }),
+      });
+      getStatus.mockResolvedValue(pendingContract(true));
+
+      render(<PendingTermsGate />);
+
+      fireEvent.click(await screen.findByRole('button', { name: /ir para o portal do cliente/i }));
+
+      expect(new URL(window.location.href).searchParams.get('tenant_id')).toBe('t-2');
+    });
+
+    it('token ilegível não quebra o gate: redireciona sem tenant_id', async () => {
+      useAuthStore.setState({ activeTenantId: null, token: 'nao-e-jwt' });
+      getStatus.mockResolvedValue(pendingContract(true));
+
+      render(<PendingTermsGate />);
+
+      fireEvent.click(await screen.findByRole('button', { name: /ir para o portal do cliente/i }));
+
+      expect(new URL(window.location.href).searchParams.has('tenant_id')).toBe(false);
+    });
+
+    it('CA-10: GlobalAdmin com can_accept=false vê o aviso e não é bloqueado', async () => {
+      useAuthStore.setState({ user: { email: 'ga@unum.com', groups: ['GlobalAdmin'] } });
+      getStatus.mockResolvedValue(pendingContract(false));
+
+      render(<PendingTermsGate />);
+
+      expect(await screen.findByText(GLOBAL_ADMIN_NOTICE)).toBeInTheDocument();
+      expect(screen.queryByText('Aguardando aceite do Termo de Contratação')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /ir para o portal do cliente/i })).not.toBeInTheDocument();
+      expect(window.location.href).toBe('http://localhost/posts');
+    });
+
+    it('CA-10: usuário comum com can_accept=false segue o fluxo atual (tela de espera, sem aviso)', async () => {
+      useAuthStore.setState({ user: { email: 'u@x.com', groups: ['TenantAdmin'] } });
+      getStatus.mockResolvedValue(pendingContract(false));
+
+      render(<PendingTermsGate />);
+
+      expect(await screen.findByText('Aguardando aceite do Termo de Contratação')).toBeInTheDocument();
+      expect(screen.queryByText(GLOBAL_ADMIN_NOTICE)).not.toBeInTheDocument();
+    });
+
+    it('GlobalAdmin com can_accept=true segue o fluxo de aceite no portal', async () => {
+      useAuthStore.setState({ user: { email: 'ga@unum.com', groups: ['GlobalAdmin'] } });
+      getStatus.mockResolvedValue(pendingContract(true));
+
+      render(<PendingTermsGate />);
+
+      expect(await screen.findByRole('button', { name: /ir para o portal do cliente/i })).toBeInTheDocument();
+      expect(screen.queryByText(GLOBAL_ADMIN_NOTICE)).not.toBeInTheDocument();
+    });
+
+    it('GlobalAdmin não passa quando a consulta de status falha (fail-closed)', async () => {
+      useAuthStore.setState({ user: { email: 'ga@unum.com', groups: ['GlobalAdmin'] } });
+      getStatus.mockRejectedValue(new Error('Network error'));
+
+      render(<PendingTermsGate />);
+
+      expect(await screen.findByText('Aguardando aceite do Termo de Contratação')).toBeInTheDocument();
+      expect(screen.queryByText(GLOBAL_ADMIN_NOTICE)).not.toBeInTheDocument();
     });
   });
 });
