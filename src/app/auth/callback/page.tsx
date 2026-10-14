@@ -33,7 +33,7 @@ function AuthCallbackContent() {
     sessionStorage.removeItem(AUTH_RETURN_TO_STORAGE_KEY);
 
     if (!code || !codeVerifier) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- o código e o verifier vêm do sessionStorage, que só existe no navegador; o efeito roda uma vez
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- o verifier vem do sessionStorage e o code da URL, ambos só disponíveis no navegador; o efeito roda uma vez
       setStatus('error');
       setMessage('Sessão de login inválida ou expirada. Tente novamente.');
       return;

@@ -57,7 +57,6 @@ export function waitForSessionImages(targets: readonly string[]): Promise<void> 
     const finish = () => {
       if (settled) return
       settled = true
-      // Só roda depois de um fetch responder, quando interval e deadline já existem.
       clearInterval(interval)
       clearTimeout(deadline)
       resolve()
@@ -78,8 +77,10 @@ export function waitForSessionImages(targets: readonly string[]): Promise<void> 
       }
     }
 
-    poll()
+    // Os timers existem antes da primeira consulta, então finish pode
+    // limpá-los mesmo que uma resposta chegue de forma síncrona.
     const interval = setInterval(poll, INTERVALO_MS)
     const deadline = setTimeout(finish, PRAZO_MS)
+    poll()
   })
 }
