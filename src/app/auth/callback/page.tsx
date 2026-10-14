@@ -33,6 +33,7 @@ function AuthCallbackContent() {
     sessionStorage.removeItem(AUTH_RETURN_TO_STORAGE_KEY);
 
     if (!code || !codeVerifier) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- o código e o verifier vêm do sessionStorage, que só existe no navegador; o efeito roda uma vez
       setStatus('error');
       setMessage('Sessão de login inválida ou expirada. Tente novamente.');
       return;
@@ -47,7 +48,7 @@ function AuthCallbackContent() {
         codeVerifier,
       });
 
-      const decoded: any = jwtDecode(tokens.id_token);
+      const decoded = jwtDecode<{ email: string; 'cognito:groups'?: string[] }>(tokens.id_token);
       const groups = decoded['cognito:groups'] || [];
       const user = { email: decoded.email, groups };
 
@@ -63,8 +64,9 @@ function AuthCallbackContent() {
         try {
           await blogApi.listPosts(undefined, 1);
           enabledServices = ['blog'];
-        } catch (apiErr: any) {
-          enabledServices = apiErr.message && apiErr.message.includes('403') ? [] : ['blog'];
+        } catch (apiErr) {
+          const mensagem = apiErr instanceof Error ? apiErr.message : '';
+          enabledServices = mensagem.includes('403') ? [] : ['blog'];
         }
       }
 

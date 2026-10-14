@@ -16,10 +16,14 @@ export function CapaEmPreparacao({ src, className }: { src: string; className?: 
   const [estado, setEstado] = useState<Estado>('foto')
   const [inicio, setInicio] = useState<number | null>(null)
 
-  useEffect(() => {
+  // Imagem nova: volta ao estado inicial. Ajuste durante a renderização, como
+  // recomenda o React, em vez de um efeito que renderiza duas vezes.
+  const [srcAnterior, setSrcAnterior] = useState(src)
+  if (src !== srcAnterior) {
+    setSrcAnterior(src)
     setEstado('foto')
     setInicio(null)
-  }, [src])
+  }
 
   useEffect(() => {
     if (estado !== 'processando' || inicio === null) return
