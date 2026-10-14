@@ -3,6 +3,7 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import PendingTermsGate from './PendingTermsGate';
 import { termsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
+import { comoMock } from '@/test/mocks';
 
 vi.mock('@/lib/api', () => ({
   termsApi: {
@@ -42,21 +43,21 @@ describe('PendingTermsGate', () => {
     useAuthStore.setState({ tenantsLoaded: true });
 
     // Mock window.location.href
-    // @ts-ignore
+    // @ts-expect-error -- o jsdom não deixa trocar location sem apagá-la antes
     delete window.location;
-    window.location = {
+    // O setter de window.location só aceita string; o teste troca o objeto inteiro.
+    (window as unknown as { location: Location }).location = {
       href: 'http://localhost/posts',
-    } as any;
+    } as Location;
   });
 
   afterEach(() => {
     useAuthStore.setState({ tenantsLoaded: false });
-    // @ts-ignore
-    window.location = originalLocation;
+    (window as unknown as { location: Location }).location = originalLocation;
   });
 
   it('não renderiza nada quando não há pendências (pending=[])', async () => {
-    (termsApi.getStatus as any).mockResolvedValue({ pending: [] });
+    comoMock(termsApi.getStatus).mockResolvedValue({ pending: [] });
 
     const { container } = render(<PendingTermsGate />);
 
@@ -68,7 +69,7 @@ describe('PendingTermsGate', () => {
   });
 
   it('exibe modal com botão quando há termo pendente que pode ser aceito (can_accept=true)', async () => {
-    (termsApi.getStatus as any).mockResolvedValue({
+    comoMock(termsApi.getStatus).mockResolvedValue({
       pending: [
         {
           type: 'termos_uso',
@@ -102,7 +103,7 @@ describe('PendingTermsGate', () => {
   it('exibe tela de espera e faz polling a cada 15s quando can_accept=false', async () => {
     vi.useFakeTimers();
     try {
-      (termsApi.getStatus as any)
+      comoMock(termsApi.getStatus)
         .mockResolvedValueOnce({
           pending: [
             {
@@ -141,7 +142,7 @@ describe('PendingTermsGate', () => {
   });
 
   it('trata erro de rede como pendente não-acionável (fail-closed)', async () => {
-    (termsApi.getStatus as any).mockRejectedValue(new Error('Network error'));
+    comoMock(termsApi.getStatus).mockRejectedValue(new Error('Network error'));
 
     render(<PendingTermsGate />);
 
@@ -152,7 +153,7 @@ describe('PendingTermsGate', () => {
 
   it('adia a checagem de termos até o tenant ser resolvido (tenantsLoaded=false) e dispara assim que resolve', async () => {
     useAuthStore.setState({ tenantsLoaded: false });
-    (termsApi.getStatus as any).mockResolvedValue({ pending: [] });
+    comoMock(termsApi.getStatus).mockResolvedValue({ pending: [] });
 
     render(<PendingTermsGate />);
 

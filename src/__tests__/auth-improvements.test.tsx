@@ -7,14 +7,14 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() })
 }));
 vi.mock('next/image', () => ({
-  default: (props: any) => <img {...props} />
+  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img {...props} />
 }));
 vi.mock('@tanstack/react-query', () => ({
   useQuery: () => ({ data: null, isLoading: false, isError: false }),
   useMutation: () => ({ mutate: vi.fn() }),
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
   QueryClient: vi.fn(),
-  QueryClientProvider: ({ children }: any) => <div>{children}</div>
+  QueryClientProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
 }));
 vi.mock('@/store/useAuthStore', () => ({
   useAuthStore: () => ({
