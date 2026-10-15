@@ -21,7 +21,7 @@ vi.mock('@/lib/api', () => ({
 }))
 
 vi.mock('@/components/TenantSwitcher', () => ({
-  default: ({ onTenantChange }: any) => (
+  default: ({ onTenantChange }: { onTenantChange?: () => void }) => (
     <button data-testid="tenant-switcher" onClick={onTenantChange}>
       Tenant Switcher Mock
     </button>
@@ -30,23 +30,27 @@ vi.mock('@/components/TenantSwitcher', () => ({
 
 const invalidateQueriesMock = vi.fn();
 
-vi.mock('@tanstack/react-query', () => {
-  const React = require('react')
+vi.mock('@tanstack/react-query', async () => {
+  const React = await import('react')
   return {
-    useQuery: ({ queryFn }: any) => {
-      const [data, setData] = React.useState(null)
+    useQuery: ({ queryFn }: { queryFn: () => Promise<unknown> }) => {
+      const [data, setData] = React.useState<unknown>(null)
       const [isLoading, setIsLoading] = React.useState(true)
       React.useEffect(() => {
-        queryFn().then((res: any) => {
+        queryFn().then((res: unknown) => {
           setData(res)
           setIsLoading(false)
         })
       }, [])
       return { data, isLoading }
     },
-    useMutation: ({ mutationFn, onSuccess, onError }: any) => {
+    useMutation: ({ mutationFn, onSuccess, onError }: {
+      mutationFn: (args: unknown) => Promise<unknown>
+      onSuccess?: () => void
+      onError?: (err: unknown) => void
+    }) => {
       return {
-        mutate: async (args: any) => {
+        mutate: async (args: unknown) => {
           try {
             await mutationFn(args)
             if (onSuccess) onSuccess()

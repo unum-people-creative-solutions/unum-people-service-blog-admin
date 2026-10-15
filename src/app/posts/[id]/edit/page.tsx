@@ -6,7 +6,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { ArrowLeft, Loader2, AlertCircle, Building2 } from 'lucide-react';
 import Link from 'next/link';
 import PostForm from '@/components/blog/PostForm';
-import { blogApi } from '@/lib/api';
+import { blogApi, type Post } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 
 export default function EditPostPage() {
@@ -24,7 +24,7 @@ export default function EditPostPage() {
 
   // Mutation para atualizar o post
   const mutation = useMutation({
-    mutationFn: (data: any) => blogApi.updatePost(id, data),
+    mutationFn: (data: Partial<Post>) => blogApi.updatePost(id, data),
     onSuccess: () => {
       router.push('/posts');
     },

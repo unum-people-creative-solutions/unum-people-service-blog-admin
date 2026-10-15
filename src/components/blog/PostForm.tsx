@@ -195,8 +195,8 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
 
       xhr.send(file);
 
-    } catch (err: any) {
-      setUploadError(err.message || 'Falha ao iniciar upload');
+    } catch (err) {
+      setUploadError((err instanceof Error && err.message) || 'Falha ao iniciar upload');
       setUploading(false);
     }
   };
