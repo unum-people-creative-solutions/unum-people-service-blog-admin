@@ -69,8 +69,8 @@ describe("pkce", () => {
   describe("redirectToHostedUI", () => {
     beforeEach(() => {
       window.sessionStorage.clear();
-      delete (window as any).location;
-      window.location = { href: "", origin: "https://blog.unumpeople.com.br" } as any;
+      delete (window as unknown as { location?: Location }).location;
+      (window as unknown as { location: Location }).location = { href: "", origin: "https://blog.unumpeople.com.br" } as Location;
       process.env.NEXT_PUBLIC_COGNITO_HOSTED_UI_DOMAIN = "https://auth.unumpeople.com.br";
       process.env.NEXT_PUBLIC_COGNITO_BLOG_CLIENT_ID = "blog-client-id";
     });
@@ -93,8 +93,8 @@ describe("pkce", () => {
 
   describe("logoutFromHostedUI", () => {
     beforeEach(() => {
-      delete (window as any).location;
-      window.location = { href: "", origin: "https://blog.unumpeople.com.br" } as any;
+      delete (window as unknown as { location?: Location }).location;
+      (window as unknown as { location: Location }).location = { href: "", origin: "https://blog.unumpeople.com.br" } as Location;
       process.env.NEXT_PUBLIC_COGNITO_HOSTED_UI_DOMAIN = "https://auth.unumpeople.com.br";
       process.env.NEXT_PUBLIC_COGNITO_BLOG_CLIENT_ID = "blog-client-id";
     });

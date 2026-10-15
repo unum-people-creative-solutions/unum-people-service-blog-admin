@@ -6,6 +6,7 @@ import { jwtDecode } from 'jwt-decode';
 import { useAuthStore } from '@/store/useAuthStore';
 import { blogApi } from '@/lib/api';
 import { exchangeCodeForTokens, redirectToHostedUI } from '@/lib/pkce';
+import { comoMock } from '@/test/mocks';
 
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
@@ -20,7 +21,7 @@ const mockSetAuth = vi.fn();
 const mockLogout = vi.fn();
 vi.mock('@/store/useAuthStore', () => ({
   useAuthStore: Object.assign(
-    (selector: any) => selector({ setAuth: mockSetAuth }),
+    (selector: (estado: { setAuth: typeof mockSetAuth }) => unknown) => selector({ setAuth: mockSetAuth }),
     { getState: () => ({ logout: mockLogout }) }
   ),
 }));
@@ -48,12 +49,12 @@ describe('AuthCallbackPage (TASK-FE-BLOG-002)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.sessionStorage.clear();
-    (useRouter as any).mockReturnValue({ push: mockPush });
-    (jwtDecode as any).mockReturnValue({
+    comoMock(useRouter).mockReturnValue({ push: mockPush });
+    comoMock(jwtDecode).mockReturnValue({
       email: 'editor@example.com',
       'cognito:groups': [],
     });
-    (exchangeCodeForTokens as any).mockResolvedValue({
+    comoMock(exchangeCodeForTokens).mockResolvedValue({
       id_token: 'id-token-abc',
       access_token: 'access-token-abc',
       refresh_token: 'refresh-token-abc',
@@ -63,7 +64,7 @@ describe('AuthCallbackPage (TASK-FE-BLOG-002)', () => {
   });
 
   it('exibe erro e não troca código quando o code_verifier não está em sessionStorage', async () => {
-    (useSearchParams as any).mockReturnValue(makeSearchParams('auth-code-123'));
+    comoMock(useSearchParams).mockReturnValue(makeSearchParams('auth-code-123'));
 
     render(<AuthCallbackPage />);
 
@@ -76,8 +77,8 @@ describe('AuthCallbackPage (TASK-FE-BLOG-002)', () => {
 
   it('consome o code_verifier uma única vez (removido de sessionStorage após a leitura)', async () => {
     window.sessionStorage.setItem('pkce_code_verifier', 'verifier-abc');
-    (useSearchParams as any).mockReturnValue(makeSearchParams('auth-code-123'));
-    (blogApi.listPosts as any).mockResolvedValue({ posts: [], last_key: '' });
+    comoMock(useSearchParams).mockReturnValue(makeSearchParams('auth-code-123'));
+    comoMock(blogApi.listPosts).mockResolvedValue({ posts: [], last_key: '' });
 
     render(<AuthCallbackPage />);
 
@@ -89,8 +90,8 @@ describe('AuthCallbackPage (TASK-FE-BLOG-002)', () => {
 
   it('GlobalAdmin/Admins/TenantAdmin têm bypass — nunca chamam a sondagem listPosts e vão para /posts', async () => {
     window.sessionStorage.setItem('pkce_code_verifier', 'verifier-abc');
-    (useSearchParams as any).mockReturnValue(makeSearchParams('auth-code-123'));
-    (jwtDecode as any).mockReturnValue({ email: 'admin@example.com', 'cognito:groups': ['GlobalAdmin'] });
+    comoMock(useSearchParams).mockReturnValue(makeSearchParams('auth-code-123'));
+    comoMock(jwtDecode).mockReturnValue({ email: 'admin@example.com', 'cognito:groups': ['GlobalAdmin'] });
 
     render(<AuthCallbackPage />);
 
@@ -108,8 +109,8 @@ describe('AuthCallbackPage (TASK-FE-BLOG-002)', () => {
 
   it('usuário comum com acesso ao blog (sondagem listPosts OK) vai para /posts', async () => {
     window.sessionStorage.setItem('pkce_code_verifier', 'verifier-abc');
-    (useSearchParams as any).mockReturnValue(makeSearchParams('auth-code-123'));
-    (blogApi.listPosts as any).mockResolvedValue({ posts: [], last_key: '' });
+    comoMock(useSearchParams).mockReturnValue(makeSearchParams('auth-code-123'));
+    comoMock(blogApi.listPosts).mockResolvedValue({ posts: [], last_key: '' });
 
     render(<AuthCallbackPage />);
 
@@ -121,8 +122,8 @@ describe('AuthCallbackPage (TASK-FE-BLOG-002)', () => {
 
   it('usuário comum sem serviço de blog (sondagem retorna 403) vai para /403', async () => {
     window.sessionStorage.setItem('pkce_code_verifier', 'verifier-abc');
-    (useSearchParams as any).mockReturnValue(makeSearchParams('auth-code-123'));
-    (blogApi.listPosts as any).mockRejectedValue(new Error('HTTP error! status: 403'));
+    comoMock(useSearchParams).mockReturnValue(makeSearchParams('auth-code-123'));
+    comoMock(blogApi.listPosts).mockRejectedValue(new Error('HTTP error! status: 403'));
 
     render(<AuthCallbackPage />);
 
@@ -136,8 +137,8 @@ describe('AuthCallbackPage (TASK-FE-BLOG-002)', () => {
   // bloquear — preservado tal como estava, não é uma decisão nova desta task.
   it('erro não-403 na sondagem libera acesso (comportamento preservado do fluxo antigo)', async () => {
     window.sessionStorage.setItem('pkce_code_verifier', 'verifier-abc');
-    (useSearchParams as any).mockReturnValue(makeSearchParams('auth-code-123'));
-    (blogApi.listPosts as any).mockRejectedValue(new Error('network error'));
+    comoMock(useSearchParams).mockReturnValue(makeSearchParams('auth-code-123'));
+    comoMock(blogApi.listPosts).mockRejectedValue(new Error('network error'));
 
     render(<AuthCallbackPage />);
 
@@ -149,8 +150,8 @@ describe('AuthCallbackPage (TASK-FE-BLOG-002)', () => {
   it('redireciona para a rota originalmente pretendida quando o acesso é concedido', async () => {
     window.sessionStorage.setItem('pkce_code_verifier', 'verifier-abc');
     window.sessionStorage.setItem('auth_return_to', '/posts/123/edit');
-    (useSearchParams as any).mockReturnValue(makeSearchParams('auth-code-123'));
-    (blogApi.listPosts as any).mockResolvedValue({ posts: [], last_key: '' });
+    comoMock(useSearchParams).mockReturnValue(makeSearchParams('auth-code-123'));
+    comoMock(blogApi.listPosts).mockResolvedValue({ posts: [], last_key: '' });
 
     render(<AuthCallbackPage />);
 
@@ -161,8 +162,8 @@ describe('AuthCallbackPage (TASK-FE-BLOG-002)', () => {
 
   it('falha na troca de código nunca autentica silenciosamente — mostra erro e desloga', async () => {
     window.sessionStorage.setItem('pkce_code_verifier', 'verifier-abc');
-    (useSearchParams as any).mockReturnValue(makeSearchParams('auth-code-123'));
-    (exchangeCodeForTokens as any).mockRejectedValue(new Error('invalid_grant'));
+    comoMock(useSearchParams).mockReturnValue(makeSearchParams('auth-code-123'));
+    comoMock(exchangeCodeForTokens).mockRejectedValue(new Error('invalid_grant'));
 
     render(<AuthCallbackPage />);
 
@@ -174,7 +175,7 @@ describe('AuthCallbackPage (TASK-FE-BLOG-002)', () => {
   });
 
   it('botão de "tentar novamente" no erro aciona redirectToHostedUI', async () => {
-    (useSearchParams as any).mockReturnValue(makeSearchParams(null));
+    comoMock(useSearchParams).mockReturnValue(makeSearchParams(null));
 
     render(<AuthCallbackPage />);
 

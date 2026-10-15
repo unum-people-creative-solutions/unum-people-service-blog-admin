@@ -54,14 +54,11 @@ export function waitForSessionImages(targets: readonly string[]): Promise<void> 
   return new Promise((resolve) => {
     let settled = false
     const pending = new Set(targets)
-    let interval: ReturnType<typeof setInterval> | undefined
-    let deadline: ReturnType<typeof setTimeout> | undefined
-
     const finish = () => {
       if (settled) return
       settled = true
-      if (interval !== undefined) clearInterval(interval)
-      if (deadline !== undefined) clearTimeout(deadline)
+      clearInterval(interval)
+      clearTimeout(deadline)
       resolve()
     }
 
@@ -80,8 +77,10 @@ export function waitForSessionImages(targets: readonly string[]): Promise<void> 
       }
     }
 
+    // Os timers existem antes da primeira consulta, então finish pode
+    // limpá-los mesmo que uma resposta chegue de forma síncrona.
+    const interval = setInterval(poll, INTERVALO_MS)
+    const deadline = setTimeout(finish, PRAZO_MS)
     poll()
-    interval = setInterval(poll, INTERVALO_MS)
-    deadline = setTimeout(finish, PRAZO_MS)
   })
 }
