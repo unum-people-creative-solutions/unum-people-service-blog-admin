@@ -105,11 +105,13 @@ export const useAuthStore = create<AuthState>()(
         activeTenantName: state.activeTenantName,
         availableTenants: state.availableTenants,
       }),
+      // O isAdmin guardado antes da fase 5 (TenantAdmin/Admins) não vale: recalcula pelos grupos.
+      // No merge, e não no onRehydrateStorage: a reidratação roda dentro do create(), antes de useAuthStore existir.
+      merge: (guardado, atual) => {
+        const estado = { ...atual, ...(guardado as Partial<AuthState>) };
+        return { ...estado, isAdmin: estado.user?.groups.includes('GlobalAdmin') ?? false };
+      },
       onRehydrateStorage: () => (state) => {
-        // O isAdmin guardado antes da fase 5 (TenantAdmin/Admins) não vale: recalcula pelos grupos.
-        if (state) {
-          useAuthStore.setState({ isAdmin: state.user?.groups.includes('GlobalAdmin') ?? false });
-        }
         state?.setHasHydrated(true);
       },
     }
