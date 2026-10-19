@@ -58,7 +58,8 @@ function AuthCallbackContent() {
       setAuth(user, tokens.id_token, [], tokens.refresh_token);
 
       let enabledServices: string[] = [];
-      if (groups.includes('Admins') || groups.includes('GlobalAdmin') || groups.includes('TenantAdmin')) {
+      // Só o operador pula /me/acessos (gestao-de-acesso-f5 RF-08).
+      if (groups.includes('GlobalAdmin')) {
         enabledServices = ['blog'];
       } else {
         try {
