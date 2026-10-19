@@ -145,6 +145,12 @@ describe('Lista de posts segue as permissões do Blog', () => {
     expect(await screen.findByText('Você não tem permissão para fazer isso nesta empresa.')).toBeInTheDocument()
   })
 
+  it('o cabeçalho mostra quem está logado', async () => {
+    vi.mocked(acessosApi.get).mockResolvedValue(acessos(EDITOR))
+    renderPagina()
+    expect(await screen.findByText('ana@test.com')).toBeInTheDocument()
+  })
+
   it('sem blog.post.ver, mostra Sem acesso com o link do Portal e não lista posts', async () => {
     vi.mocked(acessosApi.get).mockResolvedValue(acessos([]))
     renderPagina()
