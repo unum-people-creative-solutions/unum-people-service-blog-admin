@@ -70,6 +70,7 @@ export default function NewPostPage() {
           onSubmit={(data) => mutation.mutate(data)}
           isLoading={mutation.isPending}
           podeEnviarImagem={pode('blog.midia.enviar')}
+          podePublicar={pode('blog.post.publicar')}
         />
       </div>
     </main>

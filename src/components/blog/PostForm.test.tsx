@@ -86,8 +86,9 @@ describe('PostForm', () => {
     })
   })
 
-  it('hides Save and Publish button for non-admin users', () => {
-    useAuthStore.setState({ isAdmin: false })
+  // gestao-de-acesso-f4 RF-06: Salvar e Publicar segue blog.post.publicar, não o grupo isAdmin.
+  it('hides Save and Publish button without blog.post.publicar, even for a global admin', () => {
+    useAuthStore.setState({ isAdmin: true })
 
     render(<PostForm onSubmit={mockOnSubmit} isLoading={false} podeEnviarImagem />)
 
@@ -95,10 +96,10 @@ describe('PostForm', () => {
     expect(screen.getByRole('button', { name: /salvar post/i })).toBeInTheDocument()
   })
 
-  it('shows Save and Publish button for admin users and submits with PUBLISHED status', async () => {
-    useAuthStore.setState({ isAdmin: true })
+  it('shows Save and Publish button with blog.post.publicar and submits with PUBLISHED status', async () => {
+    useAuthStore.setState({ isAdmin: false })
 
-    render(<PostForm onSubmit={mockOnSubmit} isLoading={false} podeEnviarImagem />)
+    render(<PostForm onSubmit={mockOnSubmit} isLoading={false} podeEnviarImagem podePublicar />)
 
     const saveAndPublishBtn = screen.getByRole('button', { name: /salvar e publicar/i })
     expect(saveAndPublishBtn).toBeInTheDocument()
@@ -278,7 +279,7 @@ describe('PostForm', () => {
     })
 
     async function abrirFormulario() {
-      render(<PostForm onSubmit={mockOnSubmit} isLoading={false} podeEnviarImagem initialData={draftWithCover()} />)
+      render(<PostForm onSubmit={mockOnSubmit} isLoading={false} podeEnviarImagem podePublicar initialData={draftWithCover()} />)
       await act(async () => {
         await vi.advanceTimersByTimeAsync(0)
       })

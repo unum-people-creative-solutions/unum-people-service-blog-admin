@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { useAuthStore } from '@/store/useAuthStore';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as zod from 'zod';
 import { 
@@ -65,9 +64,10 @@ interface PostFormProps {
   onSubmit: (data: Partial<Post>) => void;
   isLoading: boolean;
   podeEnviarImagem?: boolean;
+  podePublicar?: boolean;
 }
 
-export default function PostForm({ initialData, onSubmit, isLoading, podeEnviarImagem = false }: PostFormProps) {
+export default function PostForm({ initialData, onSubmit, isLoading, podeEnviarImagem = false, podePublicar = false }: PostFormProps) {
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
   const [tags, setTags] = useState<string[]>(initialData?.tags || []);
   const [tagInput, setTagInput] = useState('');
@@ -97,7 +97,6 @@ export default function PostForm({ initialData, onSubmit, isLoading, podeEnviarI
     }
   });
 
-  const { isAdmin } = useAuthStore();
   const watchTitle = watch('title');
   const watchContent = watch('content_md');
   const watchCoverImage = watch('cover_image_url');
@@ -572,7 +571,7 @@ export default function PostForm({ initialData, onSubmit, isLoading, podeEnviarI
               <Save className="w-4 h-4" />
               Salvar Post
             </button>
-            {isAdmin && (
+            {podePublicar && (
               <button
                 type="button"
                 onClick={handleSubmit((data) => submitPost(data, 'PUBLISHED'))}

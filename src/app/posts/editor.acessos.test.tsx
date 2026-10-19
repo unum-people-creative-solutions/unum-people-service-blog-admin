@@ -43,6 +43,22 @@ describe('Editor: envio de imagem segue blog.midia.enviar', () => {
     vi.mocked(blogApi.getPost).mockResolvedValue(postDoBlog)
   })
 
+  for (const [nome, pagina] of [['novo post', <NewPostPage key="n2" />], ['editar post', <EditPostPage key="e2" />]] as const) {
+    it(`${nome}: Salvar e Publicar só com blog.post.publicar`, async () => {
+      vi.mocked(acessosApi.get).mockResolvedValue(acessos(['blog.post.ver', 'blog.post.criar', 'blog.post.editar_proprio', 'blog.post.publicar']))
+      const { unmount } = comQuery(pagina)
+      expect(await screen.findByRole('button', { name: /Salvar e Publicar/i })).toBeInTheDocument()
+      unmount()
+
+      vi.mocked(acessosApi.get).mockResolvedValue(acessos(['blog.post.ver', 'blog.post.criar', 'blog.post.editar_proprio']))
+      useAuthStore.setState({ isAdmin: true })
+      comQuery(pagina)
+      expect(await screen.findByRole('button', { name: /Salvar Post/i })).toBeInTheDocument()
+      await new Promise((r) => setTimeout(r, 0))
+      expect(screen.queryByRole('button', { name: /Salvar e Publicar/i })).not.toBeInTheDocument()
+    })
+  }
+
   for (const [nome, pagina] of [['novo post', <NewPostPage key="n" />], ['editar post', <EditPostPage key="e" />]] as const) {
     it(`${nome}: com a permissão, oferece o envio`, async () => {
       vi.mocked(acessosApi.get).mockResolvedValue(acessos(['blog.post.ver', 'blog.post.criar', 'blog.post.editar_proprio', 'blog.midia.enviar']))

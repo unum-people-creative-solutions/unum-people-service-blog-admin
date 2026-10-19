@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import '@testing-library/jest-dom'
@@ -88,6 +88,53 @@ describe('Lista de posts segue as permissões do Blog', () => {
     expect(editar[0]).toHaveAttribute('href', '/posts/post-meu/edit')
     expect(screen.queryByRole('button', { name: 'Publicar Post' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Excluir Post' })).not.toBeInTheDocument()
+  })
+
+  it('cada ação some sem a sua permissão: só publicar', async () => {
+    vi.mocked(acessosApi.get).mockResolvedValue(acessos(['blog.post.ver', 'blog.post.publicar']))
+    renderPagina()
+    expect(await screen.findAllByRole('button', { name: 'Publicar Post' })).toHaveLength(2)
+    expect(screen.queryByRole('button', { name: 'Excluir Post' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Novo Post/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Editar Post' })).not.toBeInTheDocument()
+  })
+
+  it('cada ação some sem a sua permissão: só excluir', async () => {
+    vi.mocked(acessosApi.get).mockResolvedValue(acessos(['blog.post.ver', 'blog.post.excluir']))
+    renderPagina()
+    expect(await screen.findAllByRole('button', { name: 'Excluir Post' })).toHaveLength(2)
+    expect(screen.queryByRole('button', { name: 'Publicar Post' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Novo Post/i })).not.toBeInTheDocument()
+  })
+
+  it('só com ver e lista vazia, não oferece Novo Post', async () => {
+    vi.mocked(acessosApi.get).mockResolvedValue(acessos(['blog.post.ver']))
+    vi.mocked(blogApi.listPosts).mockResolvedValue({ posts: [], last_key: '' })
+    renderPagina()
+    await waitFor(() => expect(blogApi.listPosts).toHaveBeenCalled())
+    await screen.findByText(/ainda não criou posts/i)
+    expect(screen.queryByRole('link', { name: /Novo Post/i })).not.toBeInTheDocument()
+  })
+
+  it('troca de empresa relê as permissões da empresa nova', async () => {
+    vi.mocked(acessosApi.get).mockResolvedValueOnce(acessos(EDITOR)).mockResolvedValueOnce(acessos(REDATOR))
+    renderPagina()
+    expect(await screen.findAllByRole('button', { name: 'Excluir Post' })).toHaveLength(2)
+    act(() => useAuthStore.setState({ activeTenantId: 'tenant-2', activeTenantName: 'Outra' }))
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Excluir Post' })).not.toBeInTheDocument())
+    expect(acessosApi.get).toHaveBeenCalledTimes(2)
+    expect(await screen.findAllByRole('link', { name: /Novo Post/i })).not.toHaveLength(0)
+  })
+
+  it('403 com permissão ao excluir também mostra a mensagem de permissão', async () => {
+    vi.mocked(acessosApi.get).mockResolvedValue(acessos(EDITOR))
+    vi.mocked(blogApi.deletePost).mockRejectedValue(Object.assign(new Error('forbidden'), { status: 403, permissao: 'blog.post.excluir' }))
+    const user = userEvent.setup()
+    renderPagina()
+    const [excluir] = await screen.findAllByRole('button', { name: 'Excluir Post' })
+    await user.click(excluir)
+    await user.click(screen.getByRole('button', { name: /^Excluir$/ }))
+    expect(await screen.findByText('Você não tem permissão para fazer isso nesta empresa.')).toBeInTheDocument()
   })
 
   it('sem blog.post.ver, mostra Sem acesso com o link do Portal e não lista posts', async () => {
