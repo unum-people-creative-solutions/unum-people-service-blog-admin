@@ -19,7 +19,8 @@ import {
   LogOut,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { blogApi, Post } from '@/lib/api';
+import { blogApi, mensagemDeErro, Post } from '@/lib/api';
+import { useAcessosDoBlog } from '@/hooks/useAcessosDoBlog';
 import { isSessionImageUrl, waitForSessionImages } from '@/lib/sessionImageUrls';
 import TenantSwitcher from '@/components/TenantSwitcher';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -27,7 +28,10 @@ import { logoutFromHostedUI } from '@/lib/pkce';
 
 export default function PostsPage() {
   const queryClient = useQueryClient();
-  const { isAdmin, activeTenantId } = useAuthStore();
+  const { activeTenantId } = useAuthStore();
+  // pode() já vem false enquanto carrega ou se a leitura falhou.
+  const { carregando, erro, pode, podeEditarPost } = useAcessosDoBlog();
+  const semAcessoAoBlog = !carregando && !erro && !pode('blog.post.ver');
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'DRAFT' | 'PUBLISHED'>('ALL');
@@ -53,7 +57,8 @@ export default function PostsPage() {
       const apiStatus = statusFilter === 'ALL' ? undefined : statusFilter;
       return blogApi.listPosts(apiStatus, 50);
     },
-    enabled: !!activeTenantId,
+    // Erro na leitura: a lista roda. Sem blog.post.ver: não roda.
+    enabled: !!activeTenantId && (erro || pode('blog.post.ver')),
   });
 
   // Mutação para deletar post
@@ -65,7 +70,7 @@ export default function PostsPage() {
       setActionError(null);
     },
     onError: (err: Error) => {
-      setActionError(err.message || 'Não foi possível excluir o post.');
+      setActionError(mensagemDeErro(err, 'Não foi possível excluir o post.'));
     },
   });
 
@@ -77,7 +82,7 @@ export default function PostsPage() {
       setActionError(null);
     },
     onError: (err: Error) => {
-      setActionError(err.message || 'Não foi possível publicar o post.');
+      setActionError(mensagemDeErro(err, 'Não foi possível publicar o post.'));
     },
   });
 
@@ -89,7 +94,7 @@ export default function PostsPage() {
       setActionError(null);
     },
     onError: (err: Error) => {
-      setActionError(err.message || 'Não foi possível despublicar o post.');
+      setActionError(mensagemDeErro(err, 'Não foi possível despublicar o post.'));
     },
   });
 
@@ -156,7 +161,7 @@ export default function PostsPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {newPostAction}
+            {pode('blog.post.criar') && newPostAction}
             <button
               onClick={() => {
                 useAuthStore.getState().logout();
@@ -180,6 +185,18 @@ export default function PostsPage() {
 
           {/* Painel conectado às abas */}
           <div className="rounded-b-xl rounded-tr-xl border border-slate-700 bg-slate-900/30 backdrop-blur-md overflow-hidden">
+            {semAcessoAoBlog ? (
+              <div className="p-16 text-center space-y-3">
+                <h2 className="text-lg font-semibold text-white">Você não tem acesso ao Blog nesta empresa</h2>
+                <a
+                  href={process.env.NEXT_PUBLIC_CUSTOMERS_URL || 'https://customer.unumpeople.com.br'}
+                  className="text-sm font-medium text-accent-400 hover:text-accent-300"
+                >
+                  Abrir o Portal do Cliente
+                </a>
+              </div>
+            ) : (
+            <>
 
             {/* Filtros e Busca */}
             <div className="px-4 py-3 border-b border-slate-800/80 flex flex-col md:flex-row gap-3 items-center">
@@ -245,6 +262,16 @@ export default function PostsPage() {
               </div>
             )}
 
+            {erro && (
+              <div
+                role="alert"
+                className="flex items-center gap-3 px-4 py-3 border-b border-amber-800/40 bg-amber-950/40 text-amber-200 text-sm"
+              >
+                <AlertTriangle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                <p>Não foi possível carregar suas permissões nesta empresa.</p>
+              </div>
+            )}
+
             {/* Tabela de Posts */}
             {isLoading ? (
               <div className="p-12 flex flex-col items-center justify-center space-y-3">
@@ -266,7 +293,7 @@ export default function PostsPage() {
                     Você ainda não criou posts ou nenhum post atende aos filtros de pesquisa atuais.
                   </p>
                 </div>
-                {searchTerm === '' && statusFilter === 'ALL' && (
+                {searchTerm === '' && statusFilter === 'ALL' && pode('blog.post.criar') && (
                   <Link
                     href="/posts/new"
                     className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition text-sm font-medium text-slate-200"
@@ -294,7 +321,11 @@ export default function PostsPage() {
                         <td className="py-4 px-6 max-w-md">
                           <div className="space-y-1">
                             <p className="font-bold text-white text-base hover:text-accent-400 transition">
-                              <Link href={`/posts/${post.id}/edit`}>{post.title}</Link>
+                              {podeEditarPost(post) ? (
+                                <Link href={`/posts/${post.id}/edit`}>{post.title}</Link>
+                              ) : (
+                                post.title
+                              )}
                             </p>
                             <p className="text-xs text-slate-400 truncate max-w-sm">
                               {post.excerpt || 'Sem resumo disponível.'}
@@ -338,7 +369,7 @@ export default function PostsPage() {
                           </div>
                         </td>
                         <td className="py-4 px-6 text-right space-x-2">
-                          {isAdmin && (
+                          {pode('blog.post.publicar') && (
                             <button
                               onClick={() => togglePublish(post)}
                               aria-label={post.status === 'PUBLISHED' ? 'Mudar para Rascunho' : 'Publicar Post'}
@@ -352,15 +383,17 @@ export default function PostsPage() {
                               {post.status === 'PUBLISHED' ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Upload className="w-4 h-4" aria-hidden="true" />}
                             </button>
                           )}
-                          <Link
-                            href={`/posts/${post.id}/edit`}
-                            aria-label="Editar Post"
-                            title="Editar Post"
-                            className="inline-flex p-2 rounded-lg border border-slate-800 bg-slate-950/40 hover:bg-slate-900 text-slate-400 hover:text-accent-400 hover:border-slate-700/80 transition"
-                          >
-                            <Edit3 className="w-4 h-4" aria-hidden="true" />
-                          </Link>
-                          {isAdmin && (
+                          {podeEditarPost(post) && (
+                            <Link
+                              href={`/posts/${post.id}/edit`}
+                              aria-label="Editar Post"
+                              title="Editar Post"
+                              className="inline-flex p-2 rounded-lg border border-slate-800 bg-slate-950/40 hover:bg-slate-900 text-slate-400 hover:text-accent-400 hover:border-slate-700/80 transition"
+                            >
+                              <Edit3 className="w-4 h-4" aria-hidden="true" />
+                            </Link>
+                          )}
+                          {pode('blog.post.excluir') && (
                             <button
                               onClick={() => setDeleteConfirmId(post.id)}
                               aria-label="Excluir Post"
@@ -376,6 +409,8 @@ export default function PostsPage() {
                   </tbody>
                 </table>
               </div>
+            )}
+            </>
             )}
           </div>
         </div>

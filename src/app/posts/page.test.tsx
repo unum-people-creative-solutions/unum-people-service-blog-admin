@@ -11,14 +11,26 @@ import { useAuthStore } from '@/store/useAuthStore'
 const COVER = 'https://cdn.example/optimized/cover.webp'
 const OTHER = 'https://cdn.example/optimized/other.webp'
 
-vi.mock('@/lib/api', () => ({
-  blogApi: {
-    listPosts: vi.fn(),
-    deletePost: vi.fn(),
-    publishPost: vi.fn(),
-    unpublishPost: vi.fn(),
-  },
-}))
+vi.mock('@/lib/api', async () => {
+  const real = await vi.importActual<typeof import('@/lib/api')>('@/lib/api')
+  return {
+    mensagemDeErro: real.mensagemDeErro,
+    blogApi: {
+      listPosts: vi.fn(),
+      deletePost: vi.fn(),
+      publishPost: vi.fn(),
+      unpublishPost: vi.fn(),
+    },
+    // Editor do Blog: todas as ações (gestao-de-acesso-f4 RF-06).
+    acessosApi: {
+      get: vi.fn(() => Promise.resolve({
+        tenant_id: 'tenant-1',
+        operador: false,
+        ferramentas: [{ id: 'blog', nome: 'Blog', contratada: true, papel: { id: 'editor', nome: 'Editor', sistema: true, implicito: false }, permissoes: ['blog.post.ver', 'blog.post.criar', 'blog.post.editar_proprio', 'blog.post.editar_qualquer', 'blog.post.publicar', 'blog.post.excluir', 'blog.midia.enviar'] }],
+      })),
+    },
+  }
+})
 
 vi.mock('@/components/TenantSwitcher', () => ({
   default: ({ onTenantChange }: { onTenantChange?: () => void }) => (
@@ -90,8 +102,11 @@ describe('PostsPage', () => {
       last_key: '',
     })
     
+    // Com empresa ativa: sem ela, as permissões não carregam e as ações ficam escondidas.
     useAuthStore.setState({
       isAdmin: true,
+      activeTenantId: 'tenant-1',
+      isAuthenticated: true,
     })
   })
 
@@ -124,37 +139,8 @@ describe('PostsPage', () => {
     expect(invalidateQueriesMock).toHaveBeenCalledWith({ queryKey: ['posts'] })
   })
 
-  it('hides delete and publish buttons for non-admin users', async () => {
-    useAuthStore.setState({ isAdmin: false })
-
-    render(<PostsPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Post de Teste 1')).toBeInTheDocument()
-    })
-
-    // Edit link should still be visible (has href matching /posts/post-1/edit)
-    expect(screen.getByTitle('Editar Post')).toBeInTheDocument()
-
-    // Delete and publish buttons should be hidden
-    expect(screen.queryByTitle('Excluir Post')).not.toBeInTheDocument()
-    expect(screen.queryByTitle('Publicar Post')).not.toBeInTheDocument()
-    expect(screen.queryByTitle('Mudar para Rascunho')).not.toBeInTheDocument()
-  })
-
-  it('shows delete and publish buttons for admin users', async () => {
-    useAuthStore.setState({ isAdmin: true })
-
-    render(<PostsPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Post de Teste 1')).toBeInTheDocument()
-    })
-
-    expect(screen.getByTitle('Editar Post')).toBeInTheDocument()
-    expect(screen.getByTitle('Excluir Post')).toBeInTheDocument()
-    expect(screen.getByTitle('Publicar Post')).toBeInTheDocument()
-  })
+  // Quem vê publicar, excluir e editar vem de /me/acessos, não do grupo isAdmin
+  // (gestao-de-acesso-f4 RF-06): os casos por papel estão em page.acessos.test.tsx.
 
   async function mostrarPost() {
     render(<PostsPage />)
