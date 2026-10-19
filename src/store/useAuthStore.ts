@@ -106,6 +106,10 @@ export const useAuthStore = create<AuthState>()(
         availableTenants: state.availableTenants,
       }),
       onRehydrateStorage: () => (state) => {
+        // O isAdmin guardado antes da fase 5 (TenantAdmin/Admins) não vale: recalcula pelos grupos.
+        if (state) {
+          useAuthStore.setState({ isAdmin: state.user?.groups.includes('GlobalAdmin') ?? false });
+        }
         state?.setHasHydrated(true);
       },
     }
