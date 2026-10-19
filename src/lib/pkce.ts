@@ -127,10 +127,14 @@ export async function redirectToHostedUI(returnTo: string): Promise<void> {
 // Hosted UI ainda válida, o Cognito reautentica silenciosamente sem exigir
 // login de novo, então o usuário nunca saía de fato. Logout real precisa
 // passar pelo endpoint `/logout` do Cognito, que encerra a sessão SSO.
+// A raiz do blog-admin exige login, e a guarda de logout seguraria o novo
+// login: sair leva ao site principal (cadastrado em logout_urls do client).
+const SITE_PRINCIPAL_URL = "https://unumpeople.com.br/";
+
 export function logoutFromHostedUI(): void {
   sessionStorage.setItem(LOGOUT_IN_PROGRESS_KEY, String(Date.now()));
   const { domain, clientId } = getEnvConfig();
-  const logoutUri = `${window.location.origin}/`;
+  const logoutUri = SITE_PRINCIPAL_URL;
   const query = new URLSearchParams({
     client_id: clientId,
     logout_uri: logoutUri,
