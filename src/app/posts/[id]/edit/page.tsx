@@ -24,9 +24,20 @@ export default function EditPostPage() {
     enabled: !!id,
   });
 
-  // Mutation para atualizar o post
+  // Mutation para atualizar o post. O PUT ignora status; publicar é outra rota.
   const mutation = useMutation({
-    mutationFn: (data: Partial<Post>) => blogApi.updatePost(id, data),
+    mutationFn: async (data: Partial<Post>) => {
+      const { status, ...dados } = data;
+      await blogApi.updatePost(id, dados);
+      // Rascunho indo ao ar: mesma rota do botão Publicar da lista.
+      if (status === 'PUBLISHED' && post?.status !== 'PUBLISHED') {
+        try {
+          await blogApi.publishPost(id);
+        } catch (erro) {
+          throw new Error(`As alterações foram salvas, mas o post não foi publicado. ${mensagemDeErro(erro, 'Tente publicar pela lista de posts.')}`);
+        }
+      }
+    },
     onSuccess: () => {
       router.push('/posts');
     },
@@ -99,7 +110,13 @@ export default function EditPostPage() {
         {/* Error message */}
         {mutation.isError && (
           <div className="p-4 rounded-xl bg-red-950/20 border border-red-900/40 text-red-400 text-sm">
-            Erro ao atualizar post: {mensagemDeErro(mutation.error, 'Erro desconhecido')}
+            {(() => {
+              const mensagem = mensagemDeErro(mutation.error, 'Erro desconhecido');
+              // Falha ao publicar: a mensagem já diz que o save ocorreu.
+              return mensagem.startsWith('As alterações foram salvas')
+                ? mensagem
+                : `Erro ao atualizar post: ${mensagem}`;
+            })()}
           </div>
         )}
 
