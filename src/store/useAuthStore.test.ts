@@ -65,5 +65,14 @@ describe('useAuthStore - Tenant Context', () => {
     expect(updatedState.activeTenantId).toBe('tenant-2');
     expect(updatedState.activeTenantName).toBe('Tenant Two');
   });
-});
 
+  // gestao-de-acesso-f5 RF-08: só o operador (GlobalAdmin) é admin no blog-admin.
+  it('isAdmin só para GlobalAdmin; TenantAdmin e Admins não', () => {
+    const casos: [string[], boolean][] = [[['GlobalAdmin'], true], [['TenantAdmin'], false], [['Admins'], false], [['TenantAdmin', 'Admins'], false], [[], false]];
+    for (const [groups, esperado] of casos) {
+      useAuthStore.getState().setAuth({ email: 'x@x.com', groups }, 'tok', []);
+      expect(useAuthStore.getState().isAdmin).toBe(esperado);
+      expect(useAuthStore.getState().hasBlogService()).toBe(esperado);
+    }
+  });
+});

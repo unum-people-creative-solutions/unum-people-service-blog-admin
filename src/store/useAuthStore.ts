@@ -69,7 +69,7 @@ export const useAuthStore = create<AuthState>()(
         enabledServices,
         refreshToken: refreshToken || null,
         isAuthenticated: true,
-        isAdmin: user.groups.includes('Admins') || user.groups.includes('GlobalAdmin') || user.groups.includes('TenantAdmin')
+        isAdmin: user.groups.includes('GlobalAdmin')
       }),
       setToken: (token) => set({ token }),
       logout: () => set({
@@ -87,7 +87,7 @@ export const useAuthStore = create<AuthState>()(
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
       hasBlogService: () => {
         const state = get();
-        // Admins globais têm bypass
+        // O operador (GlobalAdmin) tem bypass (gestao-de-acesso-f5 RF-08)
         if (state.isAdmin) return true;
         return state.enabledServices.includes('blog');
       }
