@@ -3,6 +3,50 @@ import { redirectToHostedUI } from '@/lib/pkce';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
+export interface PapelResumo {
+  id: string;
+  nome: string;
+  sistema: boolean;
+  implicito: boolean;
+}
+
+export interface AcessoFerramenta {
+  id: string;
+  nome: string;
+  contratada: boolean;
+  papel: PapelResumo | null;
+  permissoes: string[];
+}
+
+export interface MeusAcessos {
+  tenant_id: string;
+  operador: boolean;
+  ferramentas: AcessoFerramenta[];
+}
+
+export class ErroDaApi extends Error {
+  status: number;
+  permissao?: string;
+
+  constructor(message: string, status: number, permissao?: string) {
+    super(message);
+    this.name = 'ErroDaApi';
+    this.status = status;
+    this.permissao = permissao;
+  }
+}
+
+export const MENSAGEM_SEM_PERMISSAO = 'Você não tem permissão para fazer isso nesta empresa.';
+
+// 403 com permissão nomeada vira a frase fixa; o resto usa a mensagem do erro.
+export function mensagemDeErro(err: unknown, padrao: string): string {
+  const bruto = err as { status?: unknown; permissao?: unknown; message?: unknown } | null;
+  if (bruto?.status === 403 && typeof bruto.permissao === 'string' && bruto.permissao.length > 0) {
+    return MENSAGEM_SEM_PERMISSAO;
+  }
+  return typeof bruto?.message === 'string' && bruto.message ? bruto.message : padrao;
+}
+
 async function fetchWithAuth(path: string, options: RequestInit = {}) {
   const token = useAuthStore.getState().token;
   const headers = new Headers(options.headers);
@@ -30,7 +74,8 @@ async function fetchWithAuth(path: string, options: RequestInit = {}) {
       void redirectToHostedUI(window.location.pathname);
     }
     const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.error || `HTTP error! status: ${response.status}`);
+    const permissao = typeof errData.permissao === 'string' ? errData.permissao : undefined;
+    throw new ErroDaApi(errData.error || `HTTP error! status: ${response.status}`, response.status, permissao);
   }
 
   return response.json();
@@ -124,5 +169,9 @@ export interface TermsStatusResponse {
 
 export const termsApi = {
   getStatus: (): Promise<TermsStatusResponse> => fetchWithAuth('/me/terms/status'),
+};
+
+export const acessosApi = {
+  get: (): Promise<MeusAcessos> => fetchWithAuth('/me/acessos'),
 };
 

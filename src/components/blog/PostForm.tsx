@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { useAuthStore } from '@/store/useAuthStore';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as zod from 'zod';
 import { 
@@ -64,9 +63,11 @@ interface PostFormProps {
   initialData?: Post;
   onSubmit: (data: Partial<Post>) => void;
   isLoading: boolean;
+  podeEnviarImagem?: boolean;
+  podePublicar?: boolean;
 }
 
-export default function PostForm({ initialData, onSubmit, isLoading }: PostFormProps) {
+export default function PostForm({ initialData, onSubmit, isLoading, podeEnviarImagem = false, podePublicar = false }: PostFormProps) {
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
   const [tags, setTags] = useState<string[]>(initialData?.tags || []);
   const [tagInput, setTagInput] = useState('');
@@ -96,7 +97,6 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
     }
   });
 
-  const { isAdmin } = useAuthStore();
   const watchTitle = watch('title');
   const watchContent = watch('content_md');
   const watchCoverImage = watch('cover_image_url');
@@ -396,13 +396,15 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
 
             {mediaType === 'IMAGE' ? (
               <div className="space-y-3">
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={fileInputRef}
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
+                {podeEnviarImagem && (
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={fileInputRef}
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                )}
 
                 {previewLocal || watchCoverImage ? (
                   <div className="relative aspect-video rounded-lg overflow-hidden border border-slate-800 bg-slate-950 group">
@@ -416,13 +418,15 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                       <CapaEmPreparacao src={watchCoverImage!} className="w-full h-full object-cover" />
                     )}
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition gap-2">
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="px-3 py-1.5 bg-slate-900 border border-slate-700 hover:bg-slate-800 text-xs font-semibold text-white rounded-lg transition"
-                      >
-                        Alterar
-                      </button>
+                      {podeEnviarImagem && (
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="px-3 py-1.5 bg-slate-900 border border-slate-700 hover:bg-slate-800 text-xs font-semibold text-white rounded-lg transition"
+                        >
+                          Alterar
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => {
@@ -437,7 +441,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                       </button>
                     </div>
                   </div>
-                ) : (
+                ) : podeEnviarImagem ? (
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
@@ -446,7 +450,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
                     <UploadCloud className="w-8 h-8" />
                     <span className="text-xs font-medium">Fazer upload de imagem</span>
                   </button>
-                )}
+                ) : null}
 
                 {uploading && (
                   <div className="space-y-1">
@@ -567,7 +571,7 @@ export default function PostForm({ initialData, onSubmit, isLoading }: PostFormP
               <Save className="w-4 h-4" />
               Salvar Post
             </button>
-            {isAdmin && (
+            {podePublicar && (
               <button
                 type="button"
                 onClick={handleSubmit((data) => submitPost(data, 'PUBLISHED'))}

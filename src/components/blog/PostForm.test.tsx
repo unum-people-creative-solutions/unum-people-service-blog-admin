@@ -63,7 +63,7 @@ describe('PostForm', () => {
   })
 
   it('renders all form inputs and editor', () => {
-    render(<PostForm onSubmit={mockOnSubmit} isLoading={false} />)
+    render(<PostForm onSubmit={mockOnSubmit} isLoading={false} podeEnviarImagem />)
 
     expect(screen.getByLabelText(/título do post/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/slug do post/i)).toBeInTheDocument()
@@ -73,7 +73,7 @@ describe('PostForm', () => {
   })
 
   it('auto-generates slug from title', async () => {
-    render(<PostForm onSubmit={mockOnSubmit} isLoading={false} />)
+    render(<PostForm onSubmit={mockOnSubmit} isLoading={false} podeEnviarImagem />)
 
     const titleInput = screen.getByLabelText(/título do post/i)
     const slugInput = screen.getByLabelText(/slug do post/i) as HTMLInputElement
@@ -86,19 +86,20 @@ describe('PostForm', () => {
     })
   })
 
-  it('hides Save and Publish button for non-admin users', () => {
-    useAuthStore.setState({ isAdmin: false })
+  // gestao-de-acesso-f4 RF-06: Salvar e Publicar segue blog.post.publicar, não o grupo isAdmin.
+  it('hides Save and Publish button without blog.post.publicar, even for a global admin', () => {
+    useAuthStore.setState({ isAdmin: true })
 
-    render(<PostForm onSubmit={mockOnSubmit} isLoading={false} />)
+    render(<PostForm onSubmit={mockOnSubmit} isLoading={false} podeEnviarImagem />)
 
     expect(screen.queryByRole('button', { name: /salvar e publicar/i })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /salvar post/i })).toBeInTheDocument()
   })
 
-  it('shows Save and Publish button for admin users and submits with PUBLISHED status', async () => {
-    useAuthStore.setState({ isAdmin: true })
+  it('shows Save and Publish button with blog.post.publicar and submits with PUBLISHED status', async () => {
+    useAuthStore.setState({ isAdmin: false })
 
-    render(<PostForm onSubmit={mockOnSubmit} isLoading={false} />)
+    render(<PostForm onSubmit={mockOnSubmit} isLoading={false} podeEnviarImagem podePublicar />)
 
     const saveAndPublishBtn = screen.getByRole('button', { name: /salvar e publicar/i })
     expect(saveAndPublishBtn).toBeInTheDocument()
@@ -143,7 +144,7 @@ describe('PostForm', () => {
       const xhrs = installXHR()
       const file = imageFile()
 
-      render(<PostForm onSubmit={mockOnSubmit} isLoading={false} />)
+      render(<PostForm onSubmit={mockOnSubmit} isLoading={false} podeEnviarImagem />)
       await chooseCover(file)
 
       await waitFor(() => expect(fetchMock).toHaveBeenCalled())
@@ -182,7 +183,7 @@ describe('PostForm', () => {
       })
       const xhrs = installXHR()
 
-      render(<PostForm onSubmit={mockOnSubmit} isLoading={false} />)
+      render(<PostForm onSubmit={mockOnSubmit} isLoading={false} podeEnviarImagem />)
       await chooseCover()
       await waitFor(() => expect(xhrs).toHaveLength(1))
       act(() => {
@@ -205,7 +206,7 @@ describe('PostForm', () => {
       fetchMock.mockResolvedValue(presignResponse(status, { error: erro }))
       const xhrs = installXHR()
 
-      render(<PostForm onSubmit={mockOnSubmit} isLoading={false} />)
+      render(<PostForm onSubmit={mockOnSubmit} isLoading={false} podeEnviarImagem />)
       await chooseCover()
 
       expect(await screen.findByText(erro)).toBeInTheDocument()
@@ -223,7 +224,7 @@ describe('PostForm', () => {
       })
       const xhrs = installXHR()
 
-      render(<PostForm onSubmit={mockOnSubmit} isLoading={false} />)
+      render(<PostForm onSubmit={mockOnSubmit} isLoading={false} podeEnviarImagem />)
       await chooseCover()
 
       await waitFor(() => expect(xhrs).toHaveLength(1))
@@ -278,7 +279,7 @@ describe('PostForm', () => {
     })
 
     async function abrirFormulario() {
-      render(<PostForm onSubmit={mockOnSubmit} isLoading={false} initialData={draftWithCover()} />)
+      render(<PostForm onSubmit={mockOnSubmit} isLoading={false} podeEnviarImagem podePublicar initialData={draftWithCover()} />)
       await act(async () => {
         await vi.advanceTimersByTimeAsync(0)
       })

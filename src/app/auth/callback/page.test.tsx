@@ -4,7 +4,7 @@ import AuthCallbackPage from './page';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import { useAuthStore } from '@/store/useAuthStore';
-import { blogApi } from '@/lib/api';
+import { acessosApi, blogApi, type MeusAcessos } from '@/lib/api';
 import { exchangeCodeForTokens, redirectToHostedUI } from '@/lib/pkce';
 import { comoMock } from '@/test/mocks';
 
@@ -30,7 +30,23 @@ vi.mock('@/lib/api', () => ({
   blogApi: {
     listPosts: vi.fn(),
   },
+  acessosApi: {
+    get: vi.fn(),
+  },
 }));
+
+// spec: gestao-de-acesso-f4-aplicacao RF-06 — a sondagem por listPosts dá lugar a /me/acessos.
+function acessosDoBlog(contratada: boolean, permissoes: string[]): MeusAcessos {
+  return {
+    tenant_id: 't1',
+    operador: false,
+    ferramentas: [
+      { id: 'portal', nome: 'Portal do Cliente', contratada: true, papel: { id: 'membro', nome: 'Membro', sistema: true, implicito: false }, permissoes: ['portal.empresa.ver'] },
+      { id: 'blog', nome: 'Blog', contratada, papel: { id: 'redator', nome: 'Redator', sistema: true, implicito: false }, permissoes },
+    ],
+  };
+}
+const REDATOR = ['blog.post.ver', 'blog.post.criar', 'blog.post.editar_proprio', 'blog.midia.enviar'];
 
 vi.mock('@/lib/pkce', () => ({
   exchangeCodeForTokens: vi.fn(),
@@ -78,7 +94,7 @@ describe('AuthCallbackPage (TASK-FE-BLOG-002)', () => {
   it('consome o code_verifier uma única vez (removido de sessionStorage após a leitura)', async () => {
     window.sessionStorage.setItem('pkce_code_verifier', 'verifier-abc');
     comoMock(useSearchParams).mockReturnValue(makeSearchParams('auth-code-123'));
-    comoMock(blogApi.listPosts).mockResolvedValue({ posts: [], last_key: '' });
+    comoMock(acessosApi.get).mockResolvedValue(acessosDoBlog(true, REDATOR));
 
     render(<AuthCallbackPage />);
 
@@ -98,7 +114,7 @@ describe('AuthCallbackPage (TASK-FE-BLOG-002)', () => {
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith('/posts');
     });
-    expect(blogApi.listPosts).not.toHaveBeenCalled();
+    expect(acessosApi.get).not.toHaveBeenCalled();
     expect(mockSetAuth).toHaveBeenLastCalledWith(
       { email: 'admin@example.com', groups: ['GlobalAdmin'] },
       'id-token-abc',
@@ -107,23 +123,48 @@ describe('AuthCallbackPage (TASK-FE-BLOG-002)', () => {
     );
   });
 
-  it('usuário comum com acesso ao blog (sondagem listPosts OK) vai para /posts', async () => {
+  it('usuário comum com blog.post.ver no Blog contratado vai para /posts, sem sondar listPosts', async () => {
     window.sessionStorage.setItem('pkce_code_verifier', 'verifier-abc');
     comoMock(useSearchParams).mockReturnValue(makeSearchParams('auth-code-123'));
-    comoMock(blogApi.listPosts).mockResolvedValue({ posts: [], last_key: '' });
+    comoMock(acessosApi.get).mockResolvedValue(acessosDoBlog(true, REDATOR));
 
     render(<AuthCallbackPage />);
 
     await waitFor(() => {
-      expect(blogApi.listPosts).toHaveBeenCalled();
+      expect(acessosApi.get).toHaveBeenCalled();
       expect(mockPush).toHaveBeenCalledWith('/posts');
+    });
+    expect(blogApi.listPosts).not.toHaveBeenCalled();
+  });
+
+  it('sem blog.post.ver no Blog vai para /403', async () => {
+    window.sessionStorage.setItem('pkce_code_verifier', 'verifier-abc');
+    comoMock(useSearchParams).mockReturnValue(makeSearchParams('auth-code-123'));
+    comoMock(acessosApi.get).mockResolvedValue(acessosDoBlog(true, []));
+
+    render(<AuthCallbackPage />);
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/403');
     });
   });
 
-  it('usuário comum sem serviço de blog (sondagem retorna 403) vai para /403', async () => {
+  it('Blog não contratado vai para /403', async () => {
     window.sessionStorage.setItem('pkce_code_verifier', 'verifier-abc');
     comoMock(useSearchParams).mockReturnValue(makeSearchParams('auth-code-123'));
-    comoMock(blogApi.listPosts).mockRejectedValue(new Error('HTTP error! status: 403'));
+    comoMock(acessosApi.get).mockResolvedValue(acessosDoBlog(false, REDATOR));
+
+    render(<AuthCallbackPage />);
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/403');
+    });
+  });
+
+  it('leitura dos acessos responde 403 (sem vínculo na empresa) vai para /403', async () => {
+    window.sessionStorage.setItem('pkce_code_verifier', 'verifier-abc');
+    comoMock(useSearchParams).mockReturnValue(makeSearchParams('auth-code-123'));
+    comoMock(acessosApi.get).mockRejectedValue(Object.assign(new Error('forbidden'), { status: 403 }));
 
     render(<AuthCallbackPage />);
 
@@ -138,7 +179,7 @@ describe('AuthCallbackPage (TASK-FE-BLOG-002)', () => {
   it('erro não-403 na sondagem libera acesso (comportamento preservado do fluxo antigo)', async () => {
     window.sessionStorage.setItem('pkce_code_verifier', 'verifier-abc');
     comoMock(useSearchParams).mockReturnValue(makeSearchParams('auth-code-123'));
-    comoMock(blogApi.listPosts).mockRejectedValue(new Error('network error'));
+    comoMock(acessosApi.get).mockRejectedValue(new Error('network error'));
 
     render(<AuthCallbackPage />);
 
@@ -151,7 +192,7 @@ describe('AuthCallbackPage (TASK-FE-BLOG-002)', () => {
     window.sessionStorage.setItem('pkce_code_verifier', 'verifier-abc');
     window.sessionStorage.setItem('auth_return_to', '/posts/123/edit');
     comoMock(useSearchParams).mockReturnValue(makeSearchParams('auth-code-123'));
-    comoMock(blogApi.listPosts).mockResolvedValue({ posts: [], last_key: '' });
+    comoMock(acessosApi.get).mockResolvedValue(acessosDoBlog(true, REDATOR));
 
     render(<AuthCallbackPage />);
 
