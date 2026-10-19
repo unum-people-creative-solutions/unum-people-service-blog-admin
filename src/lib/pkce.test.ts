@@ -99,13 +99,15 @@ describe("pkce", () => {
       process.env.NEXT_PUBLIC_COGNITO_BLOG_CLIENT_ID = "blog-client-id";
     });
 
-    it("redireciona pro endpoint /logout do Cognito (nunca /oauth2/authorize) com logout_uri válido", () => {
+    // Bug: voltar à raiz do blog-admin (que exige login) deixava a tela no spinner,
+    // porque a guarda de logout segura o novo login; sair leva ao site principal.
+    it("redireciona pro endpoint /logout do Cognito (nunca /oauth2/authorize) com logout_uri do site principal", () => {
       logoutFromHostedUI();
 
       const url = new URL(window.location.href);
       expect(url.origin + url.pathname).toBe("https://auth.unumpeople.com.br/logout");
       expect(url.searchParams.get("client_id")).toBe("blog-client-id");
-      expect(url.searchParams.get("logout_uri")).toBe("https://blog.unumpeople.com.br/");
+      expect(url.searchParams.get("logout_uri")).toBe("https://unumpeople.com.br/");
     });
 
     // BUG DE PRODUÇÃO (2026-07): "Sair" chamava logout() local (síncrono) e,
