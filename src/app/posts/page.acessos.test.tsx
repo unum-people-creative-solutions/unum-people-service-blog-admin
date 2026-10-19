@@ -114,6 +114,14 @@ describe('Lista de posts segue as permissões do Blog', () => {
     await waitFor(() => expect(blogApi.listPosts).toHaveBeenCalled())
     await screen.findByText(/ainda não criou posts/i)
     expect(screen.queryByRole('link', { name: /Novo Post/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Criar meu primeiro Post/i })).not.toBeInTheDocument()
+  })
+
+  it('com criar e lista vazia, oferece Criar meu primeiro Post', async () => {
+    vi.mocked(acessosApi.get).mockResolvedValue(acessos(['blog.post.ver', 'blog.post.criar']))
+    vi.mocked(blogApi.listPosts).mockResolvedValue({ posts: [], last_key: '' })
+    renderPagina()
+    expect(await screen.findByRole('link', { name: /Criar meu primeiro Post/i })).toHaveAttribute('href', '/posts/new')
   })
 
   it('troca de empresa relê as permissões da empresa nova', async () => {
