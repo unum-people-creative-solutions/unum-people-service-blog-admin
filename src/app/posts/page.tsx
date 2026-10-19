@@ -23,6 +23,7 @@ import { blogApi, mensagemDeErro, Post } from '@/lib/api';
 import { useAcessosDoBlog } from '@/hooks/useAcessosDoBlog';
 import { isSessionImageUrl, waitForSessionImages } from '@/lib/sessionImageUrls';
 import TenantSwitcher from '@/components/TenantSwitcher';
+import QuemEstaLogado from '@/components/QuemEstaLogado';
 import { useAuthStore } from '@/store/useAuthStore';
 import { logoutFromHostedUI } from '@/lib/pkce';
 
@@ -162,6 +163,7 @@ export default function PostsPage() {
           </div>
           <div className="flex items-center gap-3">
             {pode('blog.post.criar') && newPostAction}
+            <QuemEstaLogado />
             <button
               onClick={() => {
                 useAuthStore.getState().logout();
