@@ -5,12 +5,14 @@ import { useMutation } from '@tanstack/react-query';
 import { ArrowLeft, Building2 } from 'lucide-react';
 import Link from 'next/link';
 import PostForm from '@/components/blog/PostForm';
-import { blogApi } from '@/lib/api';
+import { blogApi, mensagemDeErro } from '@/lib/api';
+import { useAcessosDoBlog } from '@/hooks/useAcessosDoBlog';
 import { useAuthStore } from '@/store/useAuthStore';
 
 export default function NewPostPage() {
   const router = useRouter();
   const { activeTenantName } = useAuthStore();
+  const { pode } = useAcessosDoBlog();
 
   const mutation = useMutation({
     mutationFn: blogApi.createPost,
@@ -59,7 +61,7 @@ export default function NewPostPage() {
         {/* Error message */}
         {mutation.isError && (
           <div className="p-4 rounded-xl bg-red-950/20 border border-red-900/40 text-red-400 text-sm">
-            Erro ao criar post: {mutation.error?.message || 'Erro desconhecido'}
+            Erro ao criar post: {mensagemDeErro(mutation.error, 'Erro desconhecido')}
           </div>
         )}
 
@@ -67,6 +69,7 @@ export default function NewPostPage() {
         <PostForm
           onSubmit={(data) => mutation.mutate(data)}
           isLoading={mutation.isPending}
+          podeEnviarImagem={pode('blog.midia.enviar')}
         />
       </div>
     </main>

@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
-import { blogApi } from '@/lib/api';
+import { acessosApi } from '@/lib/api';
 import {
   exchangeCodeForTokens,
   redirectToHostedUI,
@@ -62,11 +62,14 @@ function AuthCallbackContent() {
         enabledServices = ['blog'];
       } else {
         try {
-          await blogApi.listPosts(undefined, 1);
-          enabledServices = ['blog'];
+          const acessos = await acessosApi.get();
+          const blog = acessos.ferramentas.find((f) => f.id === 'blog');
+          const liberado = blog != null && blog.contratada && blog.permissoes.includes('blog.post.ver');
+          enabledServices = liberado ? ['blog'] : [];
         } catch (apiErr) {
-          const mensagem = apiErr instanceof Error ? apiErr.message : '';
-          enabledServices = mensagem.includes('403') ? [] : ['blog'];
+          // 403: sem vínculo. Outro erro: a API decide depois.
+          const status = (apiErr as { status?: number })?.status;
+          enabledServices = status === 403 ? [] : ['blog'];
         }
       }
 

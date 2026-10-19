@@ -6,7 +6,8 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { ArrowLeft, Loader2, AlertCircle, Building2 } from 'lucide-react';
 import Link from 'next/link';
 import PostForm from '@/components/blog/PostForm';
-import { blogApi, type Post } from '@/lib/api';
+import { blogApi, mensagemDeErro, type Post } from '@/lib/api';
+import { useAcessosDoBlog } from '@/hooks/useAcessosDoBlog';
 import { useAuthStore } from '@/store/useAuthStore';
 
 export default function EditPostPage() {
@@ -14,6 +15,7 @@ export default function EditPostPage() {
   const params = useParams();
   const id = params.id as string;
   const { activeTenantName } = useAuthStore();
+  const { pode } = useAcessosDoBlog();
 
   // Query para buscar dados do post
   const { data: post, isLoading, isError, error } = useQuery({
@@ -97,7 +99,7 @@ export default function EditPostPage() {
         {/* Error message */}
         {mutation.isError && (
           <div className="p-4 rounded-xl bg-red-950/20 border border-red-900/40 text-red-400 text-sm">
-            Erro ao atualizar post: {mutation.error?.message || 'Erro desconhecido'}
+            Erro ao atualizar post: {mensagemDeErro(mutation.error, 'Erro desconhecido')}
           </div>
         )}
 
@@ -107,6 +109,7 @@ export default function EditPostPage() {
             initialData={post}
             onSubmit={(data) => mutation.mutate(data)}
             isLoading={mutation.isPending}
+            podeEnviarImagem={pode('blog.midia.enviar')}
           />
         )}
       </div>
