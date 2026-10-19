@@ -104,7 +104,7 @@ describe('AuthCallbackPage (TASK-FE-BLOG-002)', () => {
     expect(window.sessionStorage.getItem('pkce_code_verifier')).toBeNull();
   });
 
-  it('GlobalAdmin/Admins/TenantAdmin têm bypass — nunca chamam a sondagem listPosts e vão para /posts', async () => {
+  it('GlobalAdmin tem bypass — não lê /me/acessos e vai para /posts', async () => {
     window.sessionStorage.setItem('pkce_code_verifier', 'verifier-abc');
     comoMock(useSearchParams).mockReturnValue(makeSearchParams('auth-code-123'));
     comoMock(jwtDecode).mockReturnValue({ email: 'admin@example.com', 'cognito:groups': ['GlobalAdmin'] });
@@ -224,5 +224,21 @@ describe('AuthCallbackPage (TASK-FE-BLOG-002)', () => {
     retryButton.click();
 
     expect(redirectToHostedUI).toHaveBeenCalled();
+  });
+
+  // gestao-de-acesso-f5 RF-08: TenantAdmin e Admins não são mais atalho; passam por /me/acessos.
+  it('TenantAdmin e Admins passam por /me/acessos, como qualquer usuário', async () => {
+    for (const grupos of [['TenantAdmin'], ['Admins'], ['TenantAdmin', 'Admins']]) {
+      vi.clearAllMocks();
+      window.sessionStorage.setItem('pkce_code_verifier', 'verifier-abc');
+      comoMock(useSearchParams).mockReturnValue(makeSearchParams('auth-code-123'));
+      comoMock(jwtDecode).mockReturnValue({ email: 'dono@example.com', 'cognito:groups': grupos });
+      comoMock(acessosApi.get).mockResolvedValue(acessosDoBlog(true, []));
+
+      const { unmount } = render(<AuthCallbackPage />);
+      await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/403'));
+      expect(acessosApi.get).toHaveBeenCalled();
+      unmount();
+    }
   });
 });
