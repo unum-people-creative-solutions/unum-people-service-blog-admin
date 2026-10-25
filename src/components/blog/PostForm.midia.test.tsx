@@ -67,6 +67,7 @@ describe('PostForm — mídia destacada exclusiva', () => {
 
     expect(await screen.findByText('Use um link do YouTube (youtube.com ou youtu.be).')).toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
+    expect(screen.getByPlaceholderText(/url do vídeo/i)).toHaveFocus()
   })
 
   it('CA-09: link youtu.be válido passa', async () => {
