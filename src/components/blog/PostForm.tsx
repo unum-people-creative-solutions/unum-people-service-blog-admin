@@ -29,6 +29,7 @@ import remarkGfm from 'remark-gfm';
 import { blogApi, Post } from '@/lib/api';
 import { isSessionImageUrl, registerSessionImageUrl, waitForSessionImages, watchUntilReady } from '@/lib/sessionImageUrls';
 import { CapaEmPreparacao } from './CapaEmPreparacao';
+import { youtubeVideoId } from '@/lib/youtube';
 
 // Helper local de Slugify
 function slugify(text: string): string {
@@ -79,7 +80,7 @@ export default function PostForm({ initialData, onSubmit, isLoading, podeEnviarI
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { register, handleSubmit, control, setValue, watch, getValues, formState: { errors } } = useForm<PostFormData>({
+  const { register, handleSubmit, control, setValue, watch, getValues, setError, formState: { errors } } = useForm<PostFormData>({
     resolver: zodResolver(postSchema),
     defaultValues: {
       title: initialData?.title || '',
@@ -224,9 +225,17 @@ export default function PostForm({ initialData, onSubmit, isLoading, podeEnviarI
   };
 
   const submitPost = (data: PostFormData, status?: 'PUBLISHED') => {
+    // A mídia destacada é a foto OU o vídeo (blog-video D1): o envio tira a que
+    // não está escolhida, e a API limpa o campo vazio na edição.
+    const video = (data.video_url ?? '').trim();
+    if (mediaType === 'YOUTUBE' && video !== '' && !youtubeVideoId(video)) {
+      setError('video_url', { type: 'manual', message: 'Use um link do YouTube (youtube.com ou youtu.be).' }, { shouldFocus: true });
+      return;
+    }
     const payload = {
       ...data,
       tags,
+      ...(mediaType === 'IMAGE' ? { video_url: '' } : { cover_image_url: '' }),
       ...(status ? { status } : {}),
     };
     const cover = payload.cover_image_url;

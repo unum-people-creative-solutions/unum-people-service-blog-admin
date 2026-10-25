@@ -51,4 +51,15 @@ describe('api.ts - Tenant Headers and listTenants', () => {
       expect.any(Object)
     );
   });
+
+  // blog-video (Verifier): o "" do editor chega ao corpo do PUT, que a API lê
+  // como "tirar a capa / o vídeo".
+  it('updatePost manda video_url e cover_image_url vazios no corpo do PUT', async () => {
+    await blogApi.updatePost('post-1', { title: 'T', video_url: '', cover_image_url: '' });
+
+    const [url, init] = mockFetch.mock.calls[0];
+    expect(String(url)).toMatch(/\/admin\/blog\/posts\/post-1$/);
+    expect(init.method).toBe('PUT');
+    expect(JSON.parse(init.body)).toEqual({ title: 'T', video_url: '', cover_image_url: '' });
+  });
 });
