@@ -86,4 +86,51 @@ describe('PostForm — mídia destacada exclusiva', () => {
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
     expect(onSubmit.mock.calls[0][0]).toMatchObject({ video_url: '', cover_image_url: '' })
   })
+
+  // Verifier: os outros caminhos de envio passam pela mesma regra.
+  it('CA-08: Salvar e Publicar com Vídeo também tira a capa', async () => {
+    render(<PostForm onSubmit={onSubmit} isLoading={false} podeEnviarImagem podePublicar initialData={post()} />)
+    fireEvent.click(screen.getByRole('button', { name: /salvar e publicar/i }))
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({
+      status: 'PUBLISHED',
+      cover_image_url: '',
+      video_url: 'https://youtu.be/dQw4w9WgXcQ',
+    })
+  })
+
+  it('CA-08: post novo com Vídeo YouTube manda o vídeo e a capa vazia', async () => {
+    render(<PostForm onSubmit={onSubmit} isLoading={false} podeEnviarImagem />)
+    fireEvent.change(screen.getByLabelText(/título do post/i), { target: { value: 'Post novo com vídeo' } })
+    fireEvent.change(screen.getByLabelText(/resumo \(excerpt\)/i), { target: { value: 'Um resumo com mais de dez caracteres.' } })
+    fireEvent.change(screen.getByPlaceholderText(/digite o conteúdo em markdown/i), {
+      target: { value: 'Conteúdo do post com mais de vinte caracteres.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /vídeo youtube/i }))
+    fireEvent.change(screen.getByPlaceholderText(/url do vídeo/i), { target: { value: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' } })
+    salvar()
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({
+      cover_image_url: '',
+      video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    })
+  })
+
+  it('CA-09: com Imagem escolhida, um vídeo inválido antigo não bloqueia; o envio tira o vídeo', async () => {
+    render(
+      <PostForm
+        onSubmit={onSubmit}
+        isLoading={false}
+        podeEnviarImagem
+        initialData={post({ video_url: 'https://vimeo.com/123456' })}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: /^imagem$/i }))
+    salvar()
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ video_url: '', cover_image_url: 'https://cdn.example/optimized/capa.webp' })
+  })
 })

@@ -26,6 +26,15 @@ describe('youtubeVideoId', () => {
     ['https://www.youtube.com/watch?v=dQw4w9WgX"Q'],
     ['javascript:alert(1)'],
     ['não é url'],
+    // Verifier: o ID tem de ser exatamente o valor inteiro, e o host exato.
+    ['https://www.youtube.com/watch?v=dQw4w9WgXcQx'],
+    ['https://www.youtube.com/watch?v=dQw4w9WgXcQ%3Fautoplay%3D1'],
+    ['https://youtu.be/dQw4w9WgXcQ%2Fextra'],
+    ['https://youtu.be.evil.test/dQw4w9WgXcQ'],
+    ['https://evil.youtu.be/dQw4w9WgXcQ'],
+    ['ftp://youtube.com/watch?v=dQw4w9WgXcQ'],
+    ['https://youtube.com@evil.test/watch?v=dQw4w9WgXcQ'],
+    ['https://www.youtube.com/channel/dQw4w9WgXcQ'],
   ])('rejeita %s', (url) => {
     expect(youtubeVideoId(url)).toBeNull()
   })

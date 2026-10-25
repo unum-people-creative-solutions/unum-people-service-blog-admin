@@ -229,7 +229,7 @@ export default function PostForm({ initialData, onSubmit, isLoading, podeEnviarI
     // não está escolhida, e a API limpa o campo vazio na edição.
     const video = (data.video_url ?? '').trim();
     if (mediaType === 'YOUTUBE' && video !== '' && !youtubeVideoId(video)) {
-      setError('video_url', { type: 'manual', message: 'Use um link do YouTube (youtube.com ou youtu.be).' });
+      setError('video_url', { type: 'manual', message: 'Use um link do YouTube (youtube.com ou youtu.be).' }, { shouldFocus: true });
       return;
     }
     const payload = {
